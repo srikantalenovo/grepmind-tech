@@ -11,14 +11,30 @@ const ForgotPassword = ({ onClose }) => {
   const [userId, setUserId] = useState(null);
 
   const validatePassword = () => {
+    // Check minimum length
     if (password.length < 6) {
       setMessage('Password must be at least 6 characters long');
       return false;
     }
+
+    // Check for at least one number
+    if (!/\d/.test(password)) {
+      setMessage('Password must contain at least one number');
+      return false;
+    }
+
+    // Check for at least one special character
+    if (!/[!@#$%^&*]/.test(password)) {
+      setMessage('Password must contain at least one special character (!@#$%^&*)');
+      return false;
+    }
+
+    // Check password confirmation
     if (password !== confirmPassword) {
       setMessage('Passwords do not match');
       return false;
     }
+
     return true;
   };
 
@@ -28,6 +44,7 @@ const ForgotPassword = ({ onClose }) => {
     setMessage('');
 
     try {
+      // First verify email exists in database
       const response = await fetch('http://localhost:5000/api/auth/verify-email', {
         method: 'POST',
         headers: {
@@ -38,15 +55,16 @@ const ForgotPassword = ({ onClose }) => {
 
       const data = await response.json();
 
-      if (response.ok) {
-        setUserId(data.userId);
-        setStep(2);
-        setMessage('');
-      } else {
-        setMessage(data.errors?.[0]?.msg || 'Email not found');
+      if (!response.ok) {
+        throw new Error(data.errors?.[0]?.msg || 'Email verification failed');
       }
+
+      // If email exists, proceed to password reset step
+      setUserId(data.userId);
+      setStep(2);
+      setMessage('Email verified successfully. Please set your new password.');
     } catch (err) {
-      setMessage('An error occurred. Please try again.');
+      setMessage(err.message || 'Email not found in our database. Please check and try again.');
     } finally {
       setLoading(false);
     }
@@ -54,32 +72,43 @@ const ForgotPassword = ({ onClose }) => {
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();
+    
+    // Client-side password validation
     if (!validatePassword()) return;
 
     setLoading(true);
     setMessage('');
 
     try {
+      if (!userId) {
+        throw new Error('Email verification required. Please go back and verify your email.');
+      }
+
+      // Update password in database
       const response = await fetch('http://localhost:5000/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, password }),
+        body: JSON.stringify({ 
+          userId,
+          password,
+        }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        setMessage('Password updated successfully');
-        setTimeout(() => {
-          onClose();
-        }, 2000);
-      } else {
-        setMessage(data.errors?.[0]?.msg || 'Failed to update password');
+      if (!response.ok) {
+        throw new Error(data.errors?.[0]?.msg || 'Failed to update password');
       }
+
+      // Success handling
+      setMessage('Password has been updated successfully! Redirecting to login...');
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (err) {
-      setMessage('An error occurred. Please try again.');
+      setMessage(err.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
