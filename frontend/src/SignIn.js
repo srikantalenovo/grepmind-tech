@@ -57,8 +57,10 @@ function SignInForm() {
     }
   };
 
+  const containerClass = showForgotPassword ? 'forgot-password-open' : '';
+  
   return (
-    <div className="form-container sign-in-container">
+    <div className={`form-container sign-in-container ${containerClass}`}>
       <form onSubmit={handleOnSubmit}>
         <h1>Sign in</h1>
         <div className="social-container">
