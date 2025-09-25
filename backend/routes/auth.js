@@ -98,8 +98,8 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// Reset Password Request
-router.post('/reset-password', [
+// Verify Email for Reset Password
+router.post('/verify-email', [
   check('email', 'Please include a valid email').isEmail()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -112,15 +112,47 @@ router.post('/reset-password', [
     const user = await db.query('SELECT * FROM users WHERE email = $1', [email]);
 
     if (user.rows.length === 0) {
+      return res.status(404).json({ errors: [{ msg: 'Email not found in our database' }] });
+    }
+
+    res.json({ 
+      message: 'Email verified successfully',
+      userId: user.rows[0].id
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Reset Password
+router.post('/reset-password', [
+  check('userId', 'User ID is required').not().isEmpty(),
+  check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { userId, password } = req.body;
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update password in database
+    const result = await db.query(
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id',
+      [hashedPassword, userId]
+    );
+
+    if (result.rows.length === 0) {
       return res.status(404).json({ errors: [{ msg: 'User not found' }] });
     }
 
-    // In a real application, you would:
-    // 1. Generate a reset token
-    // 2. Save it to the database with an expiration
-    // 3. Send an email with the reset link
-    // For demo purposes, we'll just return a success message
-    res.json({ message: 'Password reset link has been sent to your email' });
+    res.json({ message: 'Password updated successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
