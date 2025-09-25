@@ -15,6 +15,13 @@ cd frontend
 # Clean up old dependencies
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue node_modules
 Remove-Item -Force -ErrorAction SilentlyContinue package-lock.json
-# Install dependencies and start
+# Install dependencies
 npm install
+
+# For Linux/Mac users:
+export NODE_OPTIONS=--openssl-legacy-provider
+# For Windows users:
+set NODE_OPTIONS=--openssl-legacy-provider
+
+# Start the application
 npm start
