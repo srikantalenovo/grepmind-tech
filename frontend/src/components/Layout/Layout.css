@@ -40,17 +40,21 @@
 
 .sidebar-header .logo {
   margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+  padding: 8px 0;
 }
 
 .sidebar-header .logo .grep {
   color: #47D749;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
 }
 
 .sidebar-header .logo .mind {
   color: #F95224;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
 }
 
 .collapse-btn {
