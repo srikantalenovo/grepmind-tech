@@ -1,9 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+
 function SignInForm() {
-  const [state, setState] = React.useState({
+  const [state, setState] = useState({
     email: "",
     password: ""
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleChange = evt => {
     const value = evt.target.value;
     setState({
@@ -12,17 +16,42 @@ function SignInForm() {
     });
   };
 
-  const handleOnSubmit = evt => {
+  const handleOnSubmit = async (evt) => {
     evt.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const { email, password } = state;
-    alert(`You are login with email: ${email} and password: ${password}`);
-
-    for (const key in state) {
-      setState({
-        ...state,
-        [key]: ""
+    try {
+      const { email, password } = state;
+      const response = await fetch('http://localhost:5000/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.errors?.[0]?.msg || 'Invalid credentials');
+      }
+
+      // Store the token in localStorage
+      localStorage.setItem('token', data.token);
+
+      // Clear form
+      setState({
+        email: "",
+        password: ""
+      });
+
+      // Redirect or update UI state
+      window.location.href = '/dashboard'; // Update this based on your routing setup
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,12 +71,14 @@ function SignInForm() {
           </a>
         </div>
         <span>or use your account</span>
+        {error && <div className="error-message">{error}</div>}
         <input
           type="email"
           placeholder="Email"
           name="email"
           value={state.email}
           onChange={handleChange}
+          required
         />
         <input
           type="password"
@@ -55,9 +86,13 @@ function SignInForm() {
           placeholder="Password"
           value={state.password}
           onChange={handleChange}
+          required
+          minLength="6"
         />
         <a href="#">Forgot your password?</a>
-        <button>Sign In</button>
+        <button disabled={loading}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </button>
       </form>
     </div>
   );

@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
+
 function SignUpForm() {
-  const [state, setState] = React.useState({
+  const [state, setState] = useState({
     name: "",
     email: "",
     password: ""
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   const handleChange = evt => {
     const value = evt.target.value;
     setState({
@@ -13,19 +17,43 @@ function SignUpForm() {
     });
   };
 
-  const handleOnSubmit = evt => {
+  const handleOnSubmit = async (evt) => {
     evt.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const { name, email, password } = state;
-    alert(
-      `You are sign up with name: ${name} email: ${email} and password: ${password}`
-    );
-
-    for (const key in state) {
-      setState({
-        ...state,
-        [key]: ""
+    try {
+      const { name, email, password } = state;
+      const response = await fetch('http://localhost:5000/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, email, password })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.errors?.[0]?.msg || 'Signup failed');
+      }
+
+      // Store the token in localStorage
+      localStorage.setItem('token', data.token);
+
+      // Clear form
+      setState({
+        name: "",
+        email: "",
+        password: ""
+      });
+
+      // Redirect or update UI state
+      window.location.href = '/dashboard'; // Update this based on your routing setup
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,12 +73,15 @@ function SignUpForm() {
           </a>
         </div>
         <span>or use your email for registration</span>
+        {error && <div className="error-message">{error}</div>}
         <input
           type="text"
           name="name"
           value={state.name}
           onChange={handleChange}
           placeholder="Name"
+          required
+          minLength="2"
         />
         <input
           type="email"
@@ -58,6 +89,7 @@ function SignUpForm() {
           value={state.email}
           onChange={handleChange}
           placeholder="Email"
+          required
         />
         <input
           type="password"
@@ -65,8 +97,12 @@ function SignUpForm() {
           value={state.password}
           onChange={handleChange}
           placeholder="Password"
+          required
+          minLength="6"
         />
-        <button>Sign Up</button>
+        <button disabled={loading}>
+          {loading ? 'Signing up...' : 'Sign Up'}
+        </button>
       </form>
     </div>
   );
