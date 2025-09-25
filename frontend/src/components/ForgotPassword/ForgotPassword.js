@@ -63,32 +63,46 @@ const ForgotPassword = ({ onClose }) => {
       setLoading(true);
       setMessage('');
 
-      console.log('Verifying email:', email); // Debug log
+      console.log('Starting email verification...'); // Debug log
+      console.log('Email to verify:', email);
+
+      const apiUrl = 'http://localhost:5000/api/auth/verify-email';
+      console.log('Making API call to:', apiUrl);
 
       // First verify email exists in database
-      const response = await fetch('http://localhost:5000/api/auth/verify-email', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ email }),
-        credentials: 'include' // Include cookies if any
       });
 
-      console.log('Server response:', response); // Debug log
+      console.log('Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
 
       const data = await response.json();
-      console.log('Response data:', data); // Debug log
+      console.log('Response data:', data);
 
       if (response.status === 404) {
+        console.error('404 Error: Email not found');
         throw new Error('Email not found in our database. Please check and try again.');
       }
 
       if (!response.ok) {
+        console.error('Response not OK:', {
+          status: response.status,
+          data: data
+        });
         throw new Error(data.errors?.[0]?.msg || 'Email verification failed');
       }
 
       if (!data.userId) {
+        console.error('Missing userId in response:', data);
         throw new Error('Invalid response from server');
       }
 
