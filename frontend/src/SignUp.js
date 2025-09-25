@@ -62,15 +62,15 @@ function SignUpForm() {
       <form onSubmit={handleOnSubmit}>
         <h1>Create Account</h1>
         <div className="social-container">
-          <button onClick={() => window.location.href='https://facebook.com'} className="social" aria-label="Sign up with Facebook">
+          <a href="#" className="social">
             <i className="fab fa-facebook-f" />
-          </button>
-          <button onClick={() => window.location.href='https://google.com'} className="social" aria-label="Sign up with Google">
+          </a>
+          <a href="#" className="social">
             <i className="fab fa-google-plus-g" />
-          </button>
-          <button onClick={() => window.location.href='https://linkedin.com'} className="social" aria-label="Sign up with LinkedIn">
+          </a>
+          <a href="#" className="social">
             <i className="fab fa-linkedin-in" />
-          </button>
+          </a>
         </div>
         <span>or use your email for registration</span>
         {error && <div className="error-message">{error}</div>}
