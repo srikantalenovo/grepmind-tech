@@ -44,6 +44,13 @@ const ForgotPassword = ({ onClose }) => {
     setMessage('');
 
     try {
+      // Input validation
+      if (!email || !email.includes('@')) {
+        setMessage('Please enter a valid email address');
+        setLoading(false);
+        return;
+      }
+
       // First verify email exists in database
       const response = await fetch('http://localhost:5000/api/auth/verify-email', {
         method: 'POST',
@@ -54,9 +61,19 @@ const ForgotPassword = ({ onClose }) => {
       });
 
       const data = await response.json();
+      console.log('Verification response:', data); // For debugging
+
+      if (response.status === 404) {
+        setMessage('Email not found in our database. Please check and try again.');
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(data.errors?.[0]?.msg || 'Email verification failed');
+      }
+
+      if (!data.userId) {
+        throw new Error('Invalid response from server');
       }
 
       // If email exists, proceed to password reset step
@@ -64,7 +81,9 @@ const ForgotPassword = ({ onClose }) => {
       setStep(2);
       setMessage('Email verified successfully. Please set your new password.');
     } catch (err) {
-      setMessage(err.message || 'Email not found in our database. Please check and try again.');
+      console.error('Verification error:', err); // For debugging
+      setMessage(err.message || 'Error verifying email. Please try again.');
+      setStep(1); // Ensure we stay on email verification step
     } finally {
       setLoading(false);
     }
@@ -117,7 +136,18 @@ const ForgotPassword = ({ onClose }) => {
   return (
     <div className="forgot-password-overlay">
       <div className="forgot-password-modal">
-        <button className="close-button" onClick={onClose}>&times;</button>
+        <button 
+          className="close-button" 
+          onClick={(e) => {
+            e.preventDefault();
+            if (loading) return; // Prevent closing while loading
+            if (window.confirm('Are you sure you want to cancel password reset?')) {
+              onClose();
+            }
+          }}
+        >
+          &times;
+        </button>
         <h2>Reset Password</h2>
         
         {step === 1 ? (
@@ -131,7 +161,16 @@ const ForgotPassword = ({ onClose }) => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <button type="submit" disabled={loading}>
+              {message && (
+                <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
+                  {message}
+                </div>
+              )}
+              <button 
+                type="submit" 
+                disabled={loading || !email.includes('@')}
+                className={loading ? 'loading' : ''}
+              >
                 {loading ? 'Verifying...' : 'Verify Email'}
               </button>
             </form>
