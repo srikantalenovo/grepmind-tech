@@ -1,4 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState } from      <div className="sidebar-header">
+        <h2><span className="grep">Grep</span><span className="mind">Mind</span></h2>
+        <button 
+          className="collapse-btn"
+          onClick={toggleSidebar}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
+        </button>
+      </div>
 import { Link, useLocation } from 'react-router-dom';
 import './Layout.css';
 import { 

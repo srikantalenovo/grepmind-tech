@@ -40,9 +40,16 @@
 
 .sidebar-header h2 {
   margin: 0;
-  color: #1a1a1a;
   font-size: 20px;
   font-weight: 600;
+}
+
+.sidebar-header h2 .grep {
+  color: #47D749;
+}
+
+.sidebar-header h2 .mind {
+  color: #F95224;
 }
 
 .collapse-btn {
@@ -164,14 +171,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-}
-
-.header h1 span.grep {
-  color: #47D749;
-}
-
-.header h1 span.mind {
-  color: #F95224;
+  color: #1a1a1a;
 }
 
 .header-right {
