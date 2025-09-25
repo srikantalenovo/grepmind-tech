@@ -30,7 +30,7 @@ const Sidebar = () => {
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <h2><span className="grep">Grep</span><span className="mind">Mind</span></h2>
+        {!isCollapsed && <h2><span className="grep">Grep</span><span className="mind">Mind</span></h2>}
         <button 
           className="collapse-btn"
           onClick={toggleSidebar}
@@ -39,15 +39,16 @@ const Sidebar = () => {
           {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
         </button>
       </div>
-      <nav className="sidebar-menu">
+      <nav className="sidebar-nav">
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
-            className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
+            className={`sidebar-link ${location.pathname === item.path ? 'active' : ''}`}
+            title={isCollapsed ? item.label : ''}
           >
-            {item.icon}
-            <span className="menu-label">{item.label}</span>
+            <span className="sidebar-icon">{item.icon}</span>
+            {!isCollapsed && <span className="sidebar-label">{item.label}</span>}
           </Link>
         ))}
       </nav>
