@@ -69,16 +69,16 @@ export default function App() {
       <Routes>
         <Route path="/" element={<AuthContainer />} />
         <Route
-          path="/"
+          path="/*"
           element={
             <ProtectedRoute>
               <Layout />
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<div>Profile Page (Coming Soon)</div>} />
-          <Route path="/settings" element={<div>Settings Page (Coming Soon)</div>} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="profile" element={<div>Profile Page (Coming Soon)</div>} />
+          <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
         </Route>
       </Routes>
     </Router>

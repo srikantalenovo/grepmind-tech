@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import './ForgotPassword.css';
 
 const ForgotPassword = ({ onClose }) => {
+  // Prevent re-renders when parent component updates
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
