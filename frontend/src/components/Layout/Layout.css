@@ -1,7 +1,9 @@
 .layout {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  background-color: #f8f9fa;
 }
 
 /* Sidebar Styles */
@@ -132,15 +134,15 @@
 /* Header Styles */
 .header {
   background: #ffffff;
-  padding: 16px 24px;
+  height: 70px;
   position: fixed;
   top: 0;
   right: 0;
   left: 250px;
   z-index: 900;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  will-change: left, width;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: left;
 }
 
 .sidebar.collapsed ~ .header {
@@ -151,11 +153,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 100%;
+  padding: 0 24px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
-  padding: 0 16px;
-  transition: padding 0.3s ease;
 }
 
 .header h1 {
@@ -200,29 +202,26 @@
 /* Main Content Styles */
 .main-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: #f8f9fa;
-  padding-left: 250px;
+  margin-left: 250px;
   min-height: 100vh;
-  transition: all 0.3s ease;
-  width: 100%;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: margin-left;
+  width: calc(100% - 250px);
   position: relative;
-  will-change: padding-left;
 }
 
 .sidebar.collapsed ~ .main-content {
-  padding-left: 80px;
+  margin-left: 80px;
+  width: calc(100% - 80px);
 }
 
 .page-content {
-  padding: 80px 24px 24px;
-  flex: 1;
+  padding: 90px 24px 24px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  min-height: calc(100vh - 70px);
   background-color: #f8f9fa;
-  transition: padding 0.3s ease;
 }
 
 /* Responsive adjustments */
@@ -237,7 +236,8 @@
   }
   
   .main-content {
-    padding-left: 80px;
+    margin-left: 80px;
+    width: calc(100% - 80px);
   }
   
   .header {
@@ -254,10 +254,13 @@
 }
 
 @media (max-width: 576px) {
+  .layout {
+    position: relative;
+  }
+
   .sidebar {
     width: 0;
     transform: translateX(-100%);
-    transition: all 0.3s ease;
   }
   
   .sidebar.open {
@@ -274,22 +277,25 @@
   }
   
   .main-content {
-    padding-left: 0;
+    margin-left: 0;
+    width: 100%;
   }
   
   .header {
     left: 0;
+    width: 100%;
   }
   
   .sidebar.open ~ .main-content {
-    padding-left: 0;
-    opacity: 0.5;
+    margin-left: 0;
+    transform: translateX(0);
+    filter: brightness(0.8);
     pointer-events: none;
   }
   
   .sidebar.open ~ .header {
     left: 0;
-    opacity: 0.5;
+    filter: brightness(0.8);
     pointer-events: none;
   }
 }
