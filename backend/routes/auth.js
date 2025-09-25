@@ -66,6 +66,67 @@ router.post('/signup', signupValidation, async (req, res) => {
   }
 });
 
+// Middleware to verify JWT token
+const authenticateToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ errors: [{ msg: 'No token provided' }] });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    return res.status(403).json({ errors: [{ msg: 'Invalid token' }] });
+  }
+};
+
+// Get current user
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name, email FROM users WHERE id = $1', [req.user.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// Reset Password Request
+router.post('/reset-password', [
+  check('email', 'Please include a valid email').isEmail()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { email } = req.body;
+    const user = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+    }
+
+    // In a real application, you would:
+    // 1. Generate a reset token
+    // 2. Save it to the database with an expiration
+    // 3. Send an email with the reset link
+    // For demo purposes, we'll just return a success message
+    res.json({ message: 'Password reset link has been sent to your email' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
+
 // Sign In
 router.post('/signin', signinValidation, async (req, res) => {
   const errors = validationResult(req);

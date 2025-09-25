@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import ForgotPassword from "./components/ForgotPassword/ForgotPassword";
 
 function SignInForm() {
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [state, setState] = useState({
     email: "",
     password: ""
@@ -91,10 +93,19 @@ function SignInForm() {
           minLength="6"
           aria-label="Password"
         />
-        <button onClick={() => window.location.href='/reset-password'} className="text-button">Forgot your password?</button>
+        <button 
+          type="button" 
+          className="text-button" 
+          onClick={() => setShowForgotPassword(true)}
+        >
+          Forgot your password?
+        </button>
         <button disabled={loading}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
+        {showForgotPassword && (
+          <ForgotPassword onClose={() => setShowForgotPassword(false)} />
+        )}
       </form>
     </div>
   );
