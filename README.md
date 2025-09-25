@@ -12,5 +12,9 @@ npm run dev
 
 Start the frontend:
 cd frontend
+# Clean up old dependencies
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue node_modules
+Remove-Item -Force -ErrorAction SilentlyContinue package-lock.json
+# Install dependencies and start
 npm install
 npm start
