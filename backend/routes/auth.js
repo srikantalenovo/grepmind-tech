@@ -102,25 +102,39 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.post('/verify-email', [
   check('email', 'Please include a valid email').isEmail()
 ], async (req, res) => {
+  console.log('\n=== Email Verification Request ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Request Body:', req.body);
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation Errors:', errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { email } = req.body;
+    console.log('Searching for email:', email);
+
     const user = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    console.log('Database response:', {
+      found: user.rows.length > 0,
+      timestamp: new Date().toISOString()
+    });
 
     if (user.rows.length === 0) {
+      console.log('Email not found in database');
       return res.status(404).json({ errors: [{ msg: 'Email not found in our database' }] });
     }
 
+    console.log('Email verified successfully for user ID:', user.rows[0].id);
     res.json({ 
       message: 'Email verified successfully',
       userId: user.rows[0].id
     });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in email verification:', err);
+    console.error('Stack trace:', err.stack);
     res.status(500).send('Server error');
   }
 });
@@ -130,31 +144,46 @@ router.post('/reset-password', [
   check('userId', 'User ID is required').not().isEmpty(),
   check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
 ], async (req, res) => {
+  console.log('\n=== Password Reset Request ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Request Body:', { 
+    userId: req.body.userId,
+    password: '********' // Hide password in logs
+  });
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation Errors:', errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { userId, password } = req.body;
+    console.log('Processing password reset for user ID:', userId);
     
     // Hash new password
+    console.log('Generating salt and hashing password...');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    console.log('Password hashed successfully');
 
     // Update password in database
+    console.log('Updating password in database...');
     const result = await db.query(
       'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id',
       [hashedPassword, userId]
     );
 
     if (result.rows.length === 0) {
+      console.log('User not found in database for ID:', userId);
       return res.status(404).json({ errors: [{ msg: 'User not found' }] });
     }
 
+    console.log('Password updated successfully for user ID:', userId);
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in password reset:', err);
+    console.error('Stack trace:', err.stack);
     res.status(500).send('Server error');
   }
 });
