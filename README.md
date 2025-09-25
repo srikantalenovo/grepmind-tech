@@ -12,11 +12,16 @@ npm run dev
 
 Start the frontend:
 cd frontend
-# Clean up old dependencies
+
+# Clean up old dependencies (Linux/Mac)
+rm -rf node_modules package-lock.json
+# OR for Windows PowerShell
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue node_modules
 Remove-Item -Force -ErrorAction SilentlyContinue package-lock.json
+
 # Install dependencies
 npm install
+npm install react-router-dom@6.16.0 react-icons@4.11.0
 
 # For Linux/Mac users:
 export NODE_OPTIONS=--openssl-legacy-provider
