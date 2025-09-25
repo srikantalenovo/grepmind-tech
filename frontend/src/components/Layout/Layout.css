@@ -38,17 +38,18 @@
   margin-bottom: 24px;
 }
 
-.sidebar-header h2 {
+.sidebar-header .logo {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
-.sidebar-header h2 .grep {
+.sidebar-header .logo .grep {
   color: #47D749;
 }
 
-.sidebar-header h2 .mind {
+.sidebar-header .logo .mind {
   color: #F95224;
 }
 
