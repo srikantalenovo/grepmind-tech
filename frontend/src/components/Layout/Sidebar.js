@@ -1,13 +1,4 @@
-import React, { useState } from      <div className="sidebar-header">
-        <h2><span className="grep">Grep</span><span className="mind">Mind</span></h2>
-        <button 
-          className="collapse-btn"
-          onClick={toggleSidebar}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
-        </button>
-      </div>
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './Layout.css';
 import { 
@@ -39,7 +30,7 @@ const Sidebar = () => {
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        {!isCollapsed && <h2>GrepMind</h2>}
+        <h2><span className="grep">Grep</span><span className="mind">Mind</span></h2>
         <button 
           className="collapse-btn"
           onClick={toggleSidebar}
@@ -48,16 +39,15 @@ const Sidebar = () => {
           {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
         </button>
       </div>
-      <nav className="sidebar-nav">
+      <nav className="sidebar-menu">
         {menuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
-            className={`sidebar-link ${location.pathname === item.path ? 'active' : ''}`}
-            title={isCollapsed ? item.label : ''}
+            className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
           >
-            <span className="sidebar-icon">{item.icon}</span>
-            {!isCollapsed && <span className="sidebar-label">{item.label}</span>}
+            {item.icon}
+            <span className="menu-label">{item.label}</span>
           </Link>
         ))}
       </nav>
