@@ -161,10 +161,17 @@
 }
 
 .header h1 {
-  color: #1a1a1a;
   margin: 0;
   font-size: 20px;
   font-weight: 600;
+}
+
+.header h1 span.grep {
+  color: #47D749;
+}
+
+.header h1 span.mind {
+  color: #F95224;
 }
 
 .header-right {
@@ -194,9 +201,9 @@
 }
 
 .logout-button:hover {
-  background: #e5e7eb;
-  color: #1a1a1a;
-  border-color: #d1d5db;
+  background: #fff1f2;
+  color: #ff416c;
+  border-color: #ff416c;
 }
 
 /* Main Content Styles */

@@ -34,7 +34,7 @@ const Header = () => {
   return (
     <header className="header">
       <div className="header-content">
-        <h1>Dashboard</h1>
+        <h1><span className="grep">Grep</span><span className="mind">Mind</span></h1>
         <div className="header-right">
           <span className="user-name">Welcome, {user?.name || 'User'}</span>
           <button onClick={handleLogout} className="logout-button">
