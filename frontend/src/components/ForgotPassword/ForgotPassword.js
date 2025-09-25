@@ -50,8 +50,10 @@ const ForgotPassword = ({ onClose }) => {
   };
 
   const handleEmailVerification = async (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevent event bubbling
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation(); // Prevent event bubbling
+    }
     
     try {
       // Input validation
@@ -135,7 +137,10 @@ const ForgotPassword = ({ onClose }) => {
   };
 
   const handlePasswordReset = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
     // Client-side password validation
     if (!validatePassword()) return;
@@ -208,7 +213,7 @@ const ForgotPassword = ({ onClose }) => {
         {step === 1 ? (
           <>
             <p>Enter your email address to verify your account.</p>
-            <form onSubmit={handleEmailVerification}>
+            <div className="form-content">
               <input
                 type="email"
                 placeholder="Email Address"
@@ -222,18 +227,18 @@ const ForgotPassword = ({ onClose }) => {
                 </div>
               )}
               <button 
-                type="submit" 
+                onClick={handleEmailVerification}
                 disabled={loading || !email.includes('@')}
                 className={loading ? 'loading' : ''}
               >
                 {loading ? 'Verifying...' : 'Verify Email'}
               </button>
-            </form>
+            </div>
           </>
         ) : (
           <>
             <p>Enter your new password.</p>
-            <form onSubmit={handlePasswordReset}>
+            <div className="form-content">
               <input
                 type="password"
                 placeholder="New Password"
@@ -250,10 +255,10 @@ const ForgotPassword = ({ onClose }) => {
                 required
                 minLength="6"
               />
-              <button type="submit" disabled={loading}>
+              <button onClick={handlePasswordReset} disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </button>
-            </form>
+            </div>
           </>
         )}
         
