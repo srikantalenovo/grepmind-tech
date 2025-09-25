@@ -67,7 +67,7 @@ const ForgotPassword = ({ onClose }) => {
       console.log('Time:', new Date().toISOString());
       console.log('Email to verify:', email);
 
-      const apiUrl = 'http://localhost:5000/api/auth/verify-email';
+      const apiUrl = `${process.env.REACT_APP_API_URL}/api/auth/verify-email`;
       console.log('API URL:', apiUrl);
 
       // First verify email exists in database
@@ -149,7 +149,7 @@ const ForgotPassword = ({ onClose }) => {
       }
 
       // Update password in database
-      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
