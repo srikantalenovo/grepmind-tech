@@ -1,9 +1,10 @@
-const express = require('express');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { check, validationResult } from 'express-validator';
+import * as db from '../db.js';
+
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { check, validationResult } = require('express-validator');
-const db = require('../db');
 
 // Validation middleware
 const signupValidation = [
@@ -111,4 +112,4 @@ router.post('/signin', signinValidation, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
