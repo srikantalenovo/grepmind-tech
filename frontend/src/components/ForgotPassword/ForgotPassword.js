@@ -1,11 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import './ForgotPassword.css';
 
 const ForgotPassword = ({ onClose }) => {
-  // Prevent re-renders when parent component updates
-  const handleClose = useCallback(() => {
-    onClose();
-  }, [onClose]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -13,6 +9,17 @@ const ForgotPassword = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [userId, setUserId] = useState(null);
+
+  // Prevent modal from closing accidentally
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   const validatePassword = () => {
     // Check minimum length
@@ -44,16 +51,19 @@ const ForgotPassword = ({ onClose }) => {
 
   const handleEmailVerification = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage('');
-
+    e.stopPropagation(); // Prevent event bubbling
+    
     try {
       // Input validation
       if (!email || !email.includes('@')) {
         setMessage('Please enter a valid email address');
-        setLoading(false);
         return;
       }
+
+      setLoading(true);
+      setMessage('');
+
+      console.log('Verifying email:', email); // Debug log
 
       // First verify email exists in database
       const response = await fetch('http://localhost:5000/api/auth/verify-email', {
@@ -62,14 +72,16 @@ const ForgotPassword = ({ onClose }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
+        credentials: 'include' // Include cookies if any
       });
 
+      console.log('Server response:', response); // Debug log
+
       const data = await response.json();
-      console.log('Verification response:', data); // For debugging
+      console.log('Response data:', data); // Debug log
 
       if (response.status === 404) {
-        setMessage('Email not found in our database. Please check and try again.');
-        return;
+        throw new Error('Email not found in our database. Please check and try again.');
       }
 
       if (!response.ok) {
@@ -85,9 +97,8 @@ const ForgotPassword = ({ onClose }) => {
       setStep(2);
       setMessage('Email verified successfully. Please set your new password.');
     } catch (err) {
-      console.error('Verification error:', err); // For debugging
+      console.error('Verification error:', err);
       setMessage(err.message || 'Error verifying email. Please try again.');
-      setStep(1); // Ensure we stay on email verification step
     } finally {
       setLoading(false);
     }
@@ -138,12 +149,22 @@ const ForgotPassword = ({ onClose }) => {
   };
 
   return (
-    <div className="forgot-password-overlay">
-      <div className="forgot-password-modal">
+    <div 
+      className="forgot-password-overlay"
+      onClick={(e) => {
+        // Prevent closing when clicking the overlay
+        e.stopPropagation();
+      }}
+    >
+      <div 
+        className="forgot-password-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button 
           className="close-button" 
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             if (loading) return; // Prevent closing while loading
             if (window.confirm('Are you sure you want to cancel password reset?')) {
               onClose();
