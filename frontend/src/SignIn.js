@@ -60,18 +60,18 @@ function SignInForm() {
       <form onSubmit={handleOnSubmit}>
         <h1>Sign in</h1>
         <div className="social-container">
-          <a href="#" className="social">
+          <button onClick={() => window.location.href='https://facebook.com'} className="social" aria-label="Sign in with Facebook">
             <i className="fab fa-facebook-f" />
-          </a>
-          <a href="#" className="social">
+          </button>
+          <button onClick={() => window.location.href='https://google.com'} className="social" aria-label="Sign in with Google">
             <i className="fab fa-google-plus-g" />
-          </a>
-          <a href="#" className="social">
+          </button>
+          <button onClick={() => window.location.href='https://linkedin.com'} className="social" aria-label="Sign in with LinkedIn">
             <i className="fab fa-linkedin-in" />
-          </a>
+          </button>
         </div>
         <span>or use your account</span>
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="error-message" role="alert">{error}</div>}
         <input
           type="email"
           placeholder="Email"
@@ -79,6 +79,7 @@ function SignInForm() {
           value={state.email}
           onChange={handleChange}
           required
+          aria-label="Email"
         />
         <input
           type="password"
@@ -88,8 +89,9 @@ function SignInForm() {
           onChange={handleChange}
           required
           minLength="6"
+          aria-label="Password"
         />
-        <a href="#">Forgot your password?</a>
+        <button onClick={() => window.location.href='/reset-password'} className="text-button">Forgot your password?</button>
         <button disabled={loading}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>

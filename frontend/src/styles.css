@@ -256,6 +256,21 @@ footer a {
   text-decoration: none;
 }
 
+.text-button {
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 14px;
+  margin: 15px 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.text-button:hover {
+  color: #ff4b2b;
+}
+
 /* Authentication styles */
 .error-message {
   color: #ff3333;
