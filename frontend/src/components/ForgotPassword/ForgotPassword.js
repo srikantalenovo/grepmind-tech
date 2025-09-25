@@ -63,30 +63,45 @@ const ForgotPassword = ({ onClose }) => {
       setLoading(true);
       setMessage('');
 
-      console.log('Starting email verification...'); // Debug log
+      console.log('=== Starting Email Verification ===');
+      console.log('Time:', new Date().toISOString());
       console.log('Email to verify:', email);
 
       const apiUrl = 'http://localhost:5000/api/auth/verify-email';
-      console.log('Making API call to:', apiUrl);
+      console.log('API URL:', apiUrl);
 
       // First verify email exists in database
+      console.log('Sending request with headers:', {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      });
+      
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         },
+        credentials: 'include',
         body: JSON.stringify({ email }),
       });
 
-      console.log('Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      const data = await response.json();
-      console.log('Response data:', data);
+      console.log('=== Response Details ===');
+      console.log('Status:', response.status);
+      console.log('Status Text:', response.statusText);
+      console.log('Headers:', Object.fromEntries(response.headers.entries()));
+      
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+        console.log('Response data:', data);
+      } else {
+        const text = await response.text();
+        console.log('Non-JSON response:', text);
+        throw new Error('Unexpected response format from server');
+      }
 
       if (response.status === 404) {
         console.error('404 Error: Email not found');
@@ -94,8 +109,9 @@ const ForgotPassword = ({ onClose }) => {
       }
 
       if (!response.ok) {
-        console.error('Response not OK:', {
+        console.error('Response Error:', {
           status: response.status,
+          statusText: response.statusText,
           data: data
         });
         throw new Error(data.errors?.[0]?.msg || 'Email verification failed');
