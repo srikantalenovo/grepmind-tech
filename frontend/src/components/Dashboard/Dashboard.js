@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiPlus, FiMic, FiArrowUp, FiChevronDown } from "react-icons/fi";
-import "./styles.css";
+import "../../styles.css";
 
 function Dashboard() {
   const [mainPrompt, setMainPrompt] = useState("");
