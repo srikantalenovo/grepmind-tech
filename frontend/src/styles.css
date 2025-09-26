@@ -562,7 +562,7 @@ input {
   max-width: 1000px; /* Updated from 1400px to 1000px */
   box-sizing: border-box; /* Include padding in width calculation */
 }
-}
+
 
 .loading-dots {
   display: flex;
