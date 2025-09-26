@@ -252,7 +252,7 @@ input {
 /* =================== MAIN RESPONSES AREA =================== */
 
 .main-responses-area {
-  width: 100%;
+  width: calc(100% - 40px); /* Match container width calculation */
   max-width: 1000px; /* Updated from 1400px to 1000px */
   margin: 0 auto; /* Center the responses area */
   display: flex;
@@ -265,7 +265,9 @@ input {
   padding: 0 20px 100px 20px; /* Add bottom padding to prevent content hiding behind fixed input */
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* Internet Explorer 10+ */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
+
 
 /* Hide scrollbar for Chrome, Safari and Opera */
 .main-responses-area::-webkit-scrollbar {
@@ -379,7 +381,7 @@ input {
 /* =================== MAIN PROMPT INPUT =================== */
 
 .main-prompt-container {
-  width: 100%;
+  width: calc(100% - 40px); /* Account for page margins */
   max-width: 1000px; /* Decreased from 1400px to 1000px */
   margin: 0 auto; /* Center the container */
   position: fixed; /* Keep it fixed at bottom */
@@ -389,7 +391,7 @@ input {
   z-index: 10; /* Ensure it stays on top */
   background: white; /* Add background for visibility */
   border-radius: 25px; /* Match input styling */
-  padding: 12px; /* Increased padding for better spacing */
+  padding: 8px; /* Reduced padding to prevent overflow */
   box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow for ChatGPT-like feel */
   opacity: 1; /* Make it visible again for large document processing */
   pointer-events: auto; /* Re-enable interaction */
@@ -399,8 +401,8 @@ input {
 
 .main-prompt-form {
   width: 100%;
-  max-width: 1000px; /* Updated from 1400px to 1000px */
-  margin: 0 auto; /* Center the form */
+  margin: 0; /* Remove auto margin to prevent overflow */
+  box-sizing: border-box;
 }
 
 .main-input-wrapper {
@@ -408,16 +410,15 @@ input {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 25px;
-  padding: 12px 20px; /* Increased padding for better spacing */
+  padding: 12px 16px; /* Reduced horizontal padding */
   transition: all 0.3s ease;
   display: flex;
   align-items: flex-end; /* Keep items aligned to bottom */
-  gap: 16px; /* Increased gap */
+  gap: 12px; /* Reduced gap to prevent overflow */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
-  max-width: 1000px; /* Updated from 1400px to 1000px */
   width: 100%; /* Take full width of container */
   min-height: 60px; /* Increased min height for ChatGPT-like feel */
-  margin: 0 auto; /* Center the wrapper */
+  margin: 0; /* Remove margin */
   overflow: hidden; /* Prevent icon overflow */
   box-sizing: border-box; /* Include padding in width calculation */
 }
@@ -473,8 +474,11 @@ input {
   cursor: pointer;
   transition: color 0.2s ease;
   flex-shrink: 0; /* Prevent icon from shrinking */
-  min-width: 16px; /* Ensure consistent width */
-  height: 16px; /* Ensure consistent height */
+  width: 16px; /* Fixed width */
+  height: 16px; /* Fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-mic-icon {
@@ -483,8 +487,11 @@ input {
   cursor: pointer;
   transition: color 0.2s ease;
   flex-shrink: 0; /* Prevent icon from shrinking */
-  min-width: 16px; /* Ensure consistent width */
-  height: 16px; /* Ensure consistent height */
+  width: 16px; /* Fixed width */
+  height: 16px; /* Fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-plus-icon:hover,
@@ -518,9 +525,11 @@ input {
   padding: 16px;
   background: rgba(255, 65, 108, 0.1);
   border-radius: 12px;
-  width: 100%;
+  width: calc(100% - 40px); /* Match container width calculation */
   max-width: 1000px; /* Updated from 1400px to 1000px */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
+
 
 .loading-dots {
   display: flex;
