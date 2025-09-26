@@ -1,7 +1,7 @@
 // frontend/src/components/Dashboard/Dashboard.js
 import React, { useState } from "react";
-import { TextField, IconButton, Paper } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
+import { IconButton, Paper, InputBase } from "@mui/material";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
 const Dashboard = () => {
   const [message, setMessage] = useState("");
@@ -10,7 +10,6 @@ const Dashboard = () => {
     if (!message.trim()) return;
 
     try {
-      // Example API call (adjust endpoint if needed)
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
@@ -29,48 +28,52 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard-container" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      className="dashboard-container"
+      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
+    >
       {/* Main dashboard content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
         <h2>Welcome to GrepMind Dashboard</h2>
         {/* analyzer/resources/logs content goes here */}
       </div>
 
-      {/* Chat input section */}
+      {/* Chat input fixed at bottom */}
       <Paper
         elevation={3}
         style={{
           display: "flex",
           alignItems: "center",
+          borderRadius: "999px", // full oval
           padding: "8px 12px",
-          borderRadius: "50px",
           margin: "12px",
+          position: "sticky",
+          bottom: 0,
+          backgroundColor: "#fff",
         }}
       >
-        <TextField
-          variant="standard"
+        <InputBase
           placeholder="Type your message..."
           fullWidth
-          InputProps={{ disableUnderline: true }}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === "Enter") handleSend();
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSend();
+            }
           }}
-          style={{
-            marginLeft: "12px",
-            marginRight: "8px",
-          }}
+          style={{ marginLeft: "12px", fontSize: "1rem" }}
         />
         <IconButton
           onClick={handleSend}
           style={{
-            backgroundColor: "#1976d2",
+            backgroundColor: "#ff416c",
             color: "white",
             marginLeft: "8px",
           }}
         >
-          <SendIcon />
+          <ArrowUpwardIcon />
         </IconButton>
       </Paper>
     </div>
