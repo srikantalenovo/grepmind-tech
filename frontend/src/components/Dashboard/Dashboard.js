@@ -19,15 +19,25 @@ const Dashboard = () => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const mainPromptRef = useRef(null);
+  const mainResponsesEndRef = useRef(null); // Added ref for main responses scroll
 
   // Scroll to bottom when messages change
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll to bottom when main responses change
+  const scrollMainToBottom = () => {
+    mainResponsesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    scrollMainToBottom();
+  }, [mainResponses]); // Added effect for main responses
 
   // Handle sending messages in chat widget
   const handleSendMessage = async (e) => {
@@ -97,7 +107,7 @@ const Dashboard = () => {
       };
       
       // Add response to state and start streaming
-      setMainResponses(prev => [responseObj, ...prev]);
+      setMainResponses(prev => [...prev, responseObj]); // Changed to append at end for newest at bottom
       setIsMainLoading(false);
       
       // Start streaming the response word by word
@@ -116,7 +126,7 @@ const Dashboard = () => {
         isStreaming: true
       };
       
-      setMainResponses(prev => [responseObj, ...prev]);
+      setMainResponses(prev => [...prev, responseObj]); // Changed to append at end for newest at bottom
       setIsMainLoading(false);
       
       // Stream the fallback response
@@ -176,10 +186,10 @@ const Dashboard = () => {
   const handleMainPromptChange = (e) => {
     setMainPrompt(e.target.value);
     
-    // Auto-resize textarea with very constrained height
+    // Auto-resize textarea with expanded height allowance
     const textarea = e.target;
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 60) + 'px'; // Very reduced max height
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px'; // Increased from 60px to 200px for better multi-line support
   };
 
   // Handle Enter key to send in chat widget
@@ -219,6 +229,7 @@ const Dashboard = () => {
                 </div>
               </div>
             ))}
+            <div ref={mainResponsesEndRef} /> {/* Added scroll target for main responses */}
           </div>
         )}
         
