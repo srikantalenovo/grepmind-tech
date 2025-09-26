@@ -234,6 +234,7 @@ input {
   flex-direction: column;
   background: #f8fafc;
   padding: 20px;
+  overflow: hidden; /* Prevent any container overflow */
 }
 
 /* =================== MAIN DASHBOARD =================== */
@@ -245,6 +246,7 @@ input {
   gap: 20px;
   position: relative;
   min-height: calc(100vh - 40px);
+  overflow: hidden; /* Hide any overflow */
 }
 
 /* =================== MAIN RESPONSES AREA =================== */
@@ -256,10 +258,18 @@ input {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: none; /* Remove max-height constraint */
-  overflow-y: visible; /* Remove scroll constraint */
+  max-height: calc(100vh - 200px); /* Limit height to allow for bottom fixed input */
+  overflow-y: auto; /* Enable vertical scrolling */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
   flex: 1;
-  padding: 0 20px; /* Add padding for better spacing */
+  padding: 0 20px 100px 20px; /* Add bottom padding to prevent content hiding behind fixed input */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.main-responses-area::-webkit-scrollbar {
+  display: none;
 }
 
 .main-response-card {
@@ -372,13 +382,17 @@ input {
   width: 100%;
   max-width: 1400px; /* Set to 1400px as requested */
   margin: 0 auto; /* Center the container */
-  position: sticky; /* Keep it sticky at bottom */
+  position: fixed; /* Keep it fixed at bottom */
   bottom: 20px;
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Perfect center alignment */
   z-index: 10; /* Ensure it stays on top */
   background: white; /* Add background for visibility */
   border-radius: 25px; /* Match input styling */
   padding: 12px; /* Increased padding for better spacing */
   box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow for ChatGPT-like feel */
+  opacity: 0; /* Make it invisible as requested */
+  pointer-events: none; /* Disable interaction when invisible */
 }
 
 .main-prompt-form {
@@ -485,7 +499,7 @@ input {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin: 20px auto;
   color: #ff416c;
   font-size: 14px;
   padding: 16px;
@@ -617,7 +631,7 @@ input {
 .chat-content {
   display: flex;
   flex-direction: column;
-  height: 420px;
+  height: 450px;
 }
 
 .chat-messages {
@@ -705,16 +719,20 @@ input {
 
 .chat-input-form {
   border-top: 1px solid #e2e8f0;
-  padding: 12px;
+  padding: 4px 8px;
+  height: 20px;
+  display: flex;
+  align-items: center;
 }
 
 .chat-input-container {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   background: #f8fafc;
-  border-radius: 20px;
-  padding: 8px 12px;
+  border-radius: 12px;
+  padding: 2px 8px;
+  height: 20px;
 }
 
 .chat-input {
@@ -722,9 +740,10 @@ input {
   border: none;
   background: transparent;
   outline: none;
-  font-size: 14px;
+  font-size: 12px;
   color: #334155;
-  padding: 6px 0;
+  padding: 2px 0;
+  height: 16px;
 }
 
 .chat-input::placeholder {
@@ -735,14 +754,14 @@ input {
   background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
   color: white;
   border: none;
-  border-radius: 14px;
-  width: 28px;
-  height: 28px;
+  border-radius: 8px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 10px;
   transition: all 0.2s ease;
   opacity: 0.7;
 }
