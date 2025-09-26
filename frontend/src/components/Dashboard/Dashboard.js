@@ -50,15 +50,6 @@ const Dashboard = () => {
       };
       
       setMessages(prev => [...prev, botResponse]);
-      
-      // Add response to main page display
-      setAiResponses(prev => [{
-        id: Date.now() + 2,
-        text: botResponse.text,
-        timestamp: new Date().toLocaleString(),
-        prompt: inputValue
-      }, ...prev]);
-      
       setIsLoading(false);
     }, 1500);
   };
@@ -86,7 +77,6 @@ const Dashboard = () => {
   // Clear chat history
   const clearChat = () => {
     setMessages([]);
-    setAiResponses([]);
   };
 
   // Handle textarea auto-resize
@@ -110,68 +100,19 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       
-      {/* AI Responses Section - Top of page */}
-      {aiResponses.length > 0 && (
-        <div className="ai-responses-section">
-          <div className="ai-responses-header">
-            <h3>AI Assistant Responses</h3>
-            <button onClick={() => setAiResponses([])} className="clear-responses-btn">
-              Clear All
-            </button>
-          </div>
-          <div className="ai-responses-list">
-            {aiResponses.map((response) => (
-              <div key={response.id} className="ai-response-card">
-                <div className="ai-response-meta">
-                  <span className="ai-response-time">{response.timestamp}</span>
-                  {response.prompt && (
-                    <span className="ai-response-prompt">
-                      Prompt: "{response.prompt.substring(0, 50)}..."
-                    </span>
-                  )}
-                </div>
-                <div className="ai-response-content">
-                  {response.text}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main Dashboard Content */}
+      {/* Main Dashboard Content - Clean and Minimal */}
       <div className="main-dashboard">
-        <div className="dashboard-stats">
-          <div className="stat-card">
-            <h3>Total Users</h3>
-            <p>1,234</p>
-          </div>
-          <div className="stat-card">
-            <h3>Active Projects</h3>
-            <p>56</p>
-          </div>
-          <div className="stat-card">
-            <h3>Completed Tasks</h3>
-            <p>789</p>
-          </div>
-          <div className="stat-card">
-            <h3>AI Queries</h3>
-            <p>{aiResponses.length}</p>
-          </div>
-        </div>
-
         <div className="recent-activity">
-          <h2>Recent Activity</h2>
+          <h2>Live Activity Feed</h2>
           <ul className="activity-list">
             <li className="activity-item">New user registration - John Doe</li>
             <li className="activity-item">Project "Website Redesign" completed</li>
             <li className="activity-item">Task "Update Documentation" assigned</li>
             <li className="activity-item">New comment on Project "Mobile App"</li>
-            {aiResponses.slice(0, 3).map((response) => (
-              <li key={response.id} className="activity-item ai-activity">
-                AI Query: "{response.prompt?.substring(0, 40)}..." - {response.timestamp}
-              </li>
-            ))}
+            <li className="activity-item">Database backup completed successfully</li>
+            <li className="activity-item">System maintenance scheduled for tonight</li>
+            <li className="activity-item">New feature request submitted</li>
+            <li className="activity-item">User "Sarah Wilson" logged in</li>
           </ul>
         </div>
       </div>
