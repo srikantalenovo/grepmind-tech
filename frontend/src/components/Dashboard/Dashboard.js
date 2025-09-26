@@ -1,30 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp, FiPlus, FiMic } from 'react-icons/fi';
-import upArrowIcon from '../../assets/uparrow.png';
+import { FiPlus, FiMic } from 'react-icons/fi';
 import upSquareIcon from '../../assets/upsqure.png';
-import aiAssistantIcon from '../../assets/ai-assistant.png';
 
 const Dashboard = () => {
-  // Chat widget states
-  const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  
   // Main dashboard states
   const [mainPrompt, setMainPrompt] = useState('');
   const [mainResponses, setMainResponses] = useState([]);
   const [isMainLoading, setIsMainLoading] = useState(false);
   
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
   const mainPromptRef = useRef(null);
   const mainResponsesEndRef = useRef(null); // Added ref for main responses scroll
-
-  // Scroll to bottom when messages change
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   // Scroll to bottom when main responses change
   const scrollMainToBottom = () => {
@@ -32,43 +17,8 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
     scrollMainToBottom();
   }, [mainResponses]); // Added effect for main responses
-
-  // Handle sending messages in chat widget
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    
-    if (!inputValue.trim()) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: inputValue,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
-
-    // Simulate API response
-    setTimeout(() => {
-      const botResponse = {
-        id: Date.now() + 1,
-        text: generateResponse(inputValue),
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      
-      setMessages(prev => [...prev, botResponse]);
-      setIsLoading(false);
-    }, 1500);
-  };
 
   // Handle main dashboard prompt submission with AI integration
   const handleMainPromptSubmit = async (e) => {
@@ -167,21 +117,6 @@ const Dashboard = () => {
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
-  // Clear chat history
-  const clearChat = () => {
-    setMessages([]);
-  };
-
-  // Handle chat widget textarea auto-resize
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-  };
-
   // Handle main prompt textarea auto-resize
   const handleMainPromptChange = (e) => {
     setMainPrompt(e.target.value);
@@ -189,15 +124,7 @@ const Dashboard = () => {
     // Auto-resize textarea with expanded height allowance
     const textarea = e.target;
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px'; // Increased from 60px to 200px for better multi-line support
-  };
-
-  // Handle Enter key to send in chat widget
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage(e);
-    }
+    textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px'; // Increased from 200px to 300px for better multi-line support
   };
 
   // Handle Enter key to send in main prompt
@@ -219,23 +146,23 @@ const Dashboard = () => {
           <div className="main-responses-area">
             {mainResponses.map((item) => (
               <div key={item.id} className="main-response-card">
-                {/* User Input Bubble */}
-                <div className="user-input-bubble">
+                {/* User Input Bubble - Right Aligned */}
+                <div className="user-input-bubble right-align">
                   <p className="user-input-text">{item.prompt}</p>
                 </div>
                 
-                {/* Loading Dots (shown while streaming) */}
+                {/* Loading Dots (shown while streaming) - Right Aligned */}
                 {item.isStreaming && (
-                  <div className="dot-loader">
+                  <div className="dot-loader right-align">
                     <span></span>
                     <span></span>
                     <span></span>
                   </div>
                 )}
                 
-                {/* AI Response Bubble (shown when response is available) */}
+                {/* AI Response Bubble (shown when response is available) - Right Aligned */}
                 {item.response && (
-                  <div className="ai-response-bubble">
+                  <div className="ai-response-bubble right-align">
                     <p className="ai-response-text">
                       {item.response}
                       {item.isStreaming && <span className="streaming-cursor">|</span>}
@@ -287,113 +214,6 @@ const Dashboard = () => {
             </div>
           </form>
         </div>
-      </div>
-
-      {/* Floating Chat Widget */}
-      <div className={`floating-chat-widget ${isChatOpen ? 'open' : ''}`}>
-        
-        {/* Chat Toggle Button */}
-        <button 
-          className="chat-toggle-btn"
-          onClick={() => setIsChatOpen(!isChatOpen)}
-        >
-          {isChatOpen ? (
-            <FiX size={24} />
-          ) : (
-            <div className="ai-assistant-button-content">
-              <img src={aiAssistantIcon} alt="AI Assistant" className="ai-assistant-icon" />
-              <span className="ai-assistant-text">AI-Assistant</span>
-            </div>
-          )}
-        </button>
-
-        {/* Chat Panel */}
-        {isChatOpen && (
-          <div className="chat-panel">
-            <div className="chat-header">
-              <div className="chat-title">
-                <FiMessageCircle className="chat-icon" />
-                <h4>AI Assistant</h4>
-              </div>
-              <button onClick={clearChat} className="clear-chat-btn" title="Clear Chat">
-                <FiTrash2 />
-              </button>
-            </div>
-
-            <div className="chat-messages">
-              {messages.length === 0 ? (
-                <div className="welcome-message">
-                  <FiMessageCircle size={24} />
-                  <p>Hello! I'm your AI assistant. How can I help you today?</p>
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`message ${message.isUser ? 'user-message' : 'bot-message'}`}
-                  >
-                    <div className="message-avatar">
-                      {message.isUser ? <FiUser /> : <FiMessageCircle />}
-                    </div>
-                    <div className="message-content">
-                      <div className="message-text">
-                        {message.text}
-                      </div>
-                      <div className="message-time">{message.timestamp}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-              
-              {isLoading && (
-                <div className="message bot-message">
-                  <div className="message-avatar">
-                    <FiMessageCircle />
-                  </div>
-                  <div className="message-content">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="chat-input-container">
-              <form onSubmit={handleSendMessage} className="chat-form">
-                <div className="input-wrapper">
-                  <textarea
-                    ref={inputRef}
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
-                    className="chat-input"
-                    rows="1"
-                    disabled={isLoading}
-                  />
-                  
-                  <div className="input-actions">
-                    <div className="action-buttons">
-                      <button
-                        type="submit"
-                        className={`send-btn ${inputValue.trim() ? 'active' : ''}`}
-                        disabled={!inputValue.trim() || isLoading}
-                        title="Send message"
-                      >
-                        <img src={upArrowIcon} alt="Send" className="submit-icon" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
