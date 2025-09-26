@@ -1,83 +1,73 @@
-// frontend/src/components/Dashboard/Dashboard.js
+// frontend/src/Dashboard.js
 import React, { useState } from "react";
-import { IconButton, Paper, InputBase } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  Paper,
+  Typography,
+} from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
-const Dashboard = () => {
+function Dashboard() {
   const [message, setMessage] = useState("");
 
-  const handleSend = async () => {
+  const handleSend = (e) => {
+    e.preventDefault();
     if (!message.trim()) return;
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message }),
-      });
-
-      const data = await response.json();
-      console.log("Server response:", data);
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-
+    console.log("Send:", message);
     setMessage("");
   };
 
   return (
-    <div
-      className="dashboard-container"
-      style={{ height: "100vh", display: "flex", flexDirection: "column" }}
-    >
-      {/* Main dashboard content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-        <h2>Welcome to GrepMind Dashboard</h2>
-        {/* analyzer/resources/logs content goes here */}
-      </div>
+    <Box className="flex flex-col h-screen">
+      {/* Main content */}
+      <Box className="flex-1 overflow-y-auto p-6">
+        <Typography variant="h5" gutterBottom>
+          Dashboard Content
+        </Typography>
+        {/* Here goes AnalyzerView / ResourcesView / LogsView */}
+      </Box>
 
-      {/* Chat input fixed at bottom */}
-      <Paper
-        elevation={3}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          borderRadius: "999px", // full oval
-          padding: "8px 12px",
-          margin: "12px",
-          position: "sticky",
-          bottom: 0,
-          backgroundColor: "#fff",
-        }}
+      {/* Chat composer pinned at bottom */}
+      <Box
+        component="form"
+        onSubmit={handleSend}
+        className="w-full px-4 pb-4"
       >
-        <InputBase
-          placeholder="Type your message..."
-          fullWidth
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          style={{ marginLeft: "12px", fontSize: "1rem" }}
-        />
-        <IconButton
-          onClick={handleSend}
-          style={{
-            backgroundColor: "#ff416c",
-            color: "white",
-            marginLeft: "8px",
-          }}
+        <Paper
+          elevation={3}
+          className="flex items-center px-4 py-2 rounded-full shadow-md bg-white dark:bg-[#303030]"
+          style={{ borderRadius: "28px" }}
         >
-          <ArrowUpwardIcon />
-        </IconButton>
-      </Paper>
-    </div>
+          {/* Editable message box */}
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            className="flex-1 outline-none text-gray-800 dark:text-gray-100 max-h-40 overflow-y-auto"
+            data-placeholder="Ask anything..."
+            onInput={(e) => setMessage(e.currentTarget.textContent)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(e);
+              }
+            }}
+          >
+            {message}
+          </div>
+
+          {/* Send button */}
+          <IconButton
+            type="submit"
+            color="primary"
+            className="ml-2 rounded-full"
+          >
+            <ArrowUpwardIcon />
+          </IconButton>
+        </Paper>
+      </Box>
+    </Box>
   );
-};
+}
 
 export default Dashboard;
