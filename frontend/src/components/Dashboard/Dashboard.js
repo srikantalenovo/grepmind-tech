@@ -1,73 +1,70 @@
-// frontend/src/Dashboard.js
-import React, { useState } from "react";
-import {
-  Box,
-  IconButton,
-  Paper,
-  Typography,
-} from "@mui/material";
+import React, { useState, useRef } from "react";
+import { IconButton, Paper } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
-function Dashboard() {
-  const [message, setMessage] = useState("");
+const Dashboard = () => {
+  const inputRef = useRef(null);
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!message.trim()) return;
-    console.log("Send:", message);
-    setMessage("");
+  const handleSend = () => {
+    const text = inputRef.current.innerText.trim();
+    if (!text) return;
+
+    console.log("User message:", text);
+    inputRef.current.innerText = ""; // clear after send
   };
 
   return (
-    <Box className="flex flex-col h-screen">
-      {/* Main content */}
-      <Box className="flex-1 overflow-y-auto p-6">
-        <Typography variant="h5" gutterBottom>
-          Dashboard Content
-        </Typography>
-        {/* Here goes AnalyzerView / ResourcesView / LogsView */}
-      </Box>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Chat content above */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+        <h2>Welcome to GrepMind Dashboard</h2>
+        {/* Messages will go here */}
+      </div>
 
-      {/* Chat composer pinned at bottom */}
-      <Box
-        component="form"
-        onSubmit={handleSend}
-        className="w-full px-4 pb-4"
+      {/* Composer at bottom */}
+      <Paper
+        elevation={3}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          borderRadius: "28px",
+          margin: "12px",
+          padding: "8px 12px",
+        }}
       >
-        <Paper
-          elevation={3}
-          className="flex items-center px-4 py-2 rounded-full shadow-md bg-white dark:bg-[#303030]"
-          style={{ borderRadius: "28px" }}
-        >
-          {/* Editable message box */}
-          <div
-            contentEditable
-            suppressContentEditableWarning
-            className="flex-1 outline-none text-gray-800 dark:text-gray-100 max-h-40 overflow-y-auto"
-            data-placeholder="Ask anything..."
-            onInput={(e) => setMessage(e.currentTarget.textContent)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(e);
-              }
-            }}
-          >
-            {message}
-          </div>
+        {/* Editable div instead of input */}
+        <div
+          ref={inputRef}
+          contentEditable
+          placeholder="Ask anything..."
+          style={{
+            flex: 1,
+            minHeight: "40px",
+            outline: "none",
+            fontSize: "1rem",
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+        />
 
-          {/* Send button */}
-          <IconButton
-            type="submit"
-            color="primary"
-            className="ml-2 rounded-full"
-          >
-            <ArrowUpwardIcon />
-          </IconButton>
-        </Paper>
-      </Box>
-    </Box>
+        {/* Send button */}
+        <IconButton
+          onClick={handleSend}
+          style={{
+            backgroundColor: "#1976d2",
+            color: "white",
+            marginLeft: "8px",
+          }}
+        >
+          <ArrowUpwardIcon />
+        </IconButton>
+      </Paper>
+    </div>
   );
-}
+};
 
 export default Dashboard;
