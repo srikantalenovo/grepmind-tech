@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp } from 'react-icons/fi';
+import { FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp } from 'react-icons/fi';
+import upArrowIcon from '../../assets/uparrow.png';
+import upSquareIcon from '../../assets/upsqure.png';
 
 const Dashboard = () => {
   // Chat widget states
@@ -57,7 +59,7 @@ const Dashboard = () => {
     }, 1500);
   };
 
-  // Handle main dashboard prompt submission
+  // Handle main dashboard prompt submission with AI integration
   const handleMainPromptSubmit = async (e) => {
     e.preventDefault();
     
@@ -67,18 +69,79 @@ const Dashboard = () => {
     setMainPrompt('');
     setIsMainLoading(true);
 
-    // Simulate API response
-    setTimeout(() => {
-      const response = {
+    try {
+      // Make API call to AI service
+      const response = await fetch('https://api.example.com/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+
+      if (!response.ok) {
+        throw new Error('API request failed');
+      }
+
+      const data = await response.json();
+      
+      // Create response object for streaming
+      const responseObj = {
         id: Date.now(),
         prompt: promptText,
-        response: generateResponse(promptText),
-        timestamp: new Date().toLocaleString()
+        response: '', // Will be filled during streaming
+        fullResponse: data.response || generateResponse(promptText), // Fallback to mock response
+        timestamp: new Date().toLocaleString(),
+        isStreaming: true
       };
       
-      setMainResponses(prev => [response, ...prev]);
+      // Add response to state and start streaming
+      setMainResponses(prev => [responseObj, ...prev]);
       setIsMainLoading(false);
-    }, 2000);
+      
+      // Start streaming the response word by word
+      await streamResponse(responseObj.id, responseObj.fullResponse);
+      
+    } catch (error) {
+      console.error('API call failed:', error);
+      
+      // Fallback to mock response with streaming
+      const responseObj = {
+        id: Date.now(),
+        prompt: promptText,
+        response: '',
+        fullResponse: generateResponse(promptText),
+        timestamp: new Date().toLocaleString(),
+        isStreaming: true
+      };
+      
+      setMainResponses(prev => [responseObj, ...prev]);
+      setIsMainLoading(false);
+      
+      // Stream the fallback response
+      await streamResponse(responseObj.id, responseObj.fullResponse);
+    }
+  };
+
+  // Stream response word by word
+  const streamResponse = async (responseId, fullText) => {
+    const words = fullText.split(' ');
+    let currentText = '';
+    
+    for (let i = 0; i < words.length; i++) {
+      currentText += (i > 0 ? ' ' : '') + words[i];
+      
+      setMainResponses(prev => prev.map(item => 
+        item.id === responseId 
+          ? { ...item, response: currentText, isStreaming: i < words.length - 1 }
+          : item
+      ));
+      
+      // Wait 50ms before next word
+      if (i < words.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    }
   };
 
   // Generate AI response
@@ -112,10 +175,10 @@ const Dashboard = () => {
   const handleMainPromptChange = (e) => {
     setMainPrompt(e.target.value);
     
-    // Auto-resize textarea
+    // Auto-resize textarea with more constrained height
     const textarea = e.target;
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px'; // Reduced max height
   };
 
   // Handle Enter key to send in chat widget
@@ -151,6 +214,7 @@ const Dashboard = () => {
                 </div>
                 <div className="response-content">
                   {item.response}
+                  {item.isStreaming && <span className="streaming-cursor">|</span>}
                 </div>
               </div>
             ))}
@@ -180,7 +244,7 @@ const Dashboard = () => {
                 onKeyPress={handleMainKeyPress}
                 placeholder="Enter your prompt here... (Press Enter to send, Shift+Enter for new line)"
                 className="main-prompt-input"
-                rows="3"
+                rows="2"
                 disabled={isMainLoading}
               />
               <button
@@ -189,7 +253,7 @@ const Dashboard = () => {
                 disabled={!mainPrompt.trim() || isMainLoading}
                 title="Send prompt"
               >
-                <FiSend size={20} />
+                <img src={upSquareIcon} alt="Submit" className="submit-icon" />
               </button>
             </div>
           </form>
@@ -286,7 +350,7 @@ const Dashboard = () => {
                         disabled={!inputValue.trim() || isLoading}
                         title="Send message"
                       >
-                        <FiSend size={16} />
+                        <img src={upArrowIcon} alt="Send" className="submit-icon" />
                       </button>
                     </div>
                   </div>
