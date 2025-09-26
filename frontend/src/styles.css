@@ -406,7 +406,7 @@ input:valid {
   align-items: flex-start; /* Changed from center to allow vertical expansion */
   gap: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
+  max-width: 150%;
   min-height: 50px; /* Changed from fixed height to min-height */
 }
 
