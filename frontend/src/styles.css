@@ -329,13 +329,15 @@ input:valid {
 
 .main-responses-area {
   width: 100%;
-  max-width: 2800px; /* Updated to match main-prompt-container */
+  max-width: 1400px; /* Updated to match main-prompt-container */
+  margin: 0 auto; /* Center the responses area */
   display: flex;
   flex-direction: column;
   gap: 20px;
   max-height: none; /* Remove max-height constraint */
   overflow-y: visible; /* Remove scroll constraint */
   flex: 1;
+  padding: 0 20px; /* Add padding for better spacing */
 }
 
 .main-response-card {
@@ -350,39 +352,43 @@ input:valid {
 /* User Input Chat Bubble */
 .user-input-bubble {
   align-self: flex-end;
-  max-width: 70%;
+  max-width: 65%; /* Slightly reduced for better ChatGPT-like proportions */
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 18px 18px 4px 18px; /* Square round corner - bottom right sharp */
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 20px 20px 4px 20px; /* More rounded corners like ChatGPT */
+  padding: 14px 18px; /* Increased padding for better ChatGPT feel */
+  margin-bottom: 12px; /* Increased margin */
+  margin-left: auto; /* Ensure right alignment */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12); /* Enhanced shadow */
 }
 
 .user-input-text {
   color: #2d3748;
-  font-size: 14px;
+  font-size: 15px; /* Increased for better readability */
   line-height: 1.5;
   margin: 0;
+  font-weight: 400; /* Normal weight for user input */
 }
 
 /* AI Response Chat Bubble */
 .ai-response-bubble {
   align-self: flex-start;
-  max-width: 70%;
+  max-width: 65%; /* Matching user bubble proportion */
   background: #f8fafc; /* Slightly different background */
   border: 1px solid #e2e8f0;
-  border-radius: 18px 18px 18px 4px; /* Square round corner - bottom left sharp */
-  padding: 16px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  margin-left: 12px; /* Slide difference */
+  border-radius: 20px 20px 20px 4px; /* More rounded corners like ChatGPT */
+  padding: 16px 20px; /* Generous padding for readability */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
+  margin-bottom: 12px; /* Consistent margin */
+  margin-right: auto; /* Ensure left alignment */
 }
 
 .ai-response-text {
   color: #2d3748;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 15px; /* Consistent with user input */
+  line-height: 1.6; /* Slightly increased for AI responses */
   margin: 0;
+  font-weight: 400; /* Normal weight */
 }
 
 /* Loading Dots Animation */
@@ -466,19 +472,21 @@ input:valid {
 
 .main-prompt-container {
   width: 100%;
-  max-width: 2800px; /* Doubled from 1400px */
-  position: sticky; /* Make it sticky at bottom */
+  max-width: 1400px; /* Set to 1400px as requested */
+  margin: 0 auto; /* Center the container */
+  position: sticky; /* Keep it sticky at bottom */
   bottom: 20px;
-  margin-top: auto; /* Push to bottom */
   z-index: 10; /* Ensure it stays on top */
   background: white; /* Add background for visibility */
   border-radius: 25px; /* Match input styling */
-  padding: 8px; /* Add some padding */
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
+  padding: 12px; /* Increased padding for better spacing */
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow for ChatGPT-like feel */
 }
 
 .main-prompt-form {
   width: 100%;
+  max-width: 1400px; /* Align with container */
+  margin: 0 auto; /* Center the form */
 }
 
 .main-input-wrapper {
@@ -486,14 +494,16 @@ input:valid {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 25px;
-  padding: 8px 16px;
+  padding: 12px 20px; /* Increased padding for better spacing */
   transition: all 0.3s ease;
   display: flex;
-  align-items: flex-end; /* Changed to align items to bottom */
-  gap: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
-  min-height: 50px; /* Changed from fixed height to min-height */
+  align-items: flex-end; /* Keep items aligned to bottom */
+  gap: 16px; /* Increased gap */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
+  max-width: 1400px; /* Align with container */
+  width: 100%; /* Take full width of container */
+  min-height: 60px; /* Increased min height for ChatGPT-like feel */
+  margin: 0 auto; /* Center the wrapper */
 }
 
 .main-input-wrapper:focus-within {
@@ -503,19 +513,20 @@ input:valid {
 
 .main-prompt-input {
   flex: 1;
-  min-height: 34px; /* Changed from fixed height */
-  max-height: 200px; /* Added max height to prevent excessive expansion */
+  min-height: 40px; /* Increased for better ChatGPT feel */
+  max-height: 300px; /* Increased max height for large inputs */
   background: transparent;
   border: none;
   outline: none;
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 15px; /* Increased for better readability */
+  line-height: 1.5; /* Improved line height */
   color: #2d3748;
   resize: none;
   font-family: inherit;
   overflow-y: auto; /* Allow vertical scrolling when max-height is reached */
-  padding: 8px 0; /* Added vertical padding for better alignment */
+  padding: 10px 0; /* Increased padding for better spacing */
   margin: 0;
+  placeholder-color: #a0aec0; /* Softer placeholder color */
 }
 
 .main-prompt-input::placeholder {
@@ -594,7 +605,7 @@ input:valid {
   background: rgba(255, 65, 108, 0.1);
   border-radius: 12px;
   width: 100%;
-  max-width: 1200px; /* Updated to match main-prompt-container */
+  max-width: 1400px; /* Updated to match main-prompt-container */
 }
 
 .loading-dots {
@@ -927,7 +938,7 @@ input:valid {
 }
 
 .chat-input-container {
-  padding: 16px;
+  padding: 8px; /* Reduced from 16px */
   background: white;
   border-top: 1px solid #e2e8f0;
 }
@@ -935,17 +946,17 @@ input:valid {
 .chat-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px; /* Reduced from 8px */
 }
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 4px; /* Reduced from 8px */
+  padding: 8px; /* Reduced from 12px */
   background: #f7fafc;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 8px; /* Reduced from 12px */
   transition: all 0.2s ease;
 }
 
@@ -995,11 +1006,11 @@ input:valid {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px; /* Reduced from 32px */
-  height: 28px; /* Reduced from 32px */
-  border: 1px solid #10b981; /* Green border */
-  border-radius: 6px; /* Slightly smaller radius */
-  background: #10b981; /* Green background */
+  width: 24px; /* Smaller square size */
+  height: 24px; /* Smaller square size */
+  border: 1px solid #60a5fa; /* Light blue border */
+  border-radius: 4px; /* Small square corners */
+  background: #60a5fa; /* Light blue background */
   color: white;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1007,14 +1018,14 @@ input:valid {
 }
 
 .send-btn.active {
-  border-color: #059669; /* Darker green when active */
+  border-color: #3b82f6; /* Darker blue when active */
   color: white;
-  background: #059669;
+  background: #3b82f6;
 }
 
 .send-btn:hover.active {
-  border-color: #047857; /* Even darker green on hover */
-  background: #047857;
+  border-color: #2563eb; /* Even darker blue on hover */
+  background: #2563eb;
   transform: scale(1.05);
 }
 
