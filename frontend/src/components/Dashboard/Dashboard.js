@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiUser, FiBot, FiTrash2 } from 'react-icons/fi';
+import { FiSend, FiUser, FiMessageCircle, FiTrash2 } from 'react-icons/fi';
 
 const Dashboard = () => {
   const [messages, setMessages] = useState([
@@ -102,7 +102,7 @@ const Dashboard = () => {
       {/* Chat Header */}
       <div className="chat-header">
         <div className="chat-title">
-          <FiBot className="chat-icon" />
+          <FiMessageCircle className="chat-icon" />
           <h2>AI Chat Assistant</h2>
         </div>
         <button onClick={clearChat} className="clear-chat-btn" title="Clear Chat">
@@ -118,7 +118,7 @@ const Dashboard = () => {
             className={`message ${message.isUser ? 'user-message' : 'bot-message'}`}
           >
             <div className="message-avatar">
-              {message.isUser ? <FiUser /> : <FiBot />}
+              {message.isUser ? <FiUser /> : <FiMessageCircle />}
             </div>
             <div className="message-content">
               <div className="message-text">{message.text}</div>
@@ -131,7 +131,7 @@ const Dashboard = () => {
         {isLoading && (
           <div className="message bot-message">
             <div className="message-avatar">
-              <FiBot />
+              <FiMessageCircle />
             </div>
             <div className="message-content">
               <div className="typing-indicator">
