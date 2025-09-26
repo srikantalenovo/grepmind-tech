@@ -233,7 +233,7 @@ input {
   display: flex;
   flex-direction: column;
   background: #f8fafc;
-  padding: 20px;
+  padding: 0; /* Remove padding to let main-dashboard handle it */
   overflow: hidden; /* Prevent any container overflow */
 }
 
@@ -246,7 +246,9 @@ input {
   gap: 20px;
   position: relative;
   min-height: calc(100vh - 40px);
-  overflow: hidden; /* Hide any overflow */
+  overflow-y: auto; /* Enable scrolling for scroll detection */
+  overflow-x: hidden; /* Hide horizontal scrollbar */
+  padding: 20px; /* Add some padding */
 }
 
 /* =================== MAIN RESPONSES AREA =================== */
@@ -389,12 +391,14 @@ input {
   padding: 12px 16px;
   background: #fff;
   border-top: 1px solid #eee;
+  z-index: 10;
 }
 
 /* Form layout */
 .main-prompt-form {
   display: flex;
   justify-content: center;
+  width: 100%;
 }
 
 /* Input wrapper (chat bubble style) */
@@ -410,6 +414,7 @@ input {
   width: 100%;
   max-width: 750px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-sizing: border-box;
 }
 
 .main-input-wrapper:focus-within {
@@ -427,12 +432,18 @@ input {
   flex: 1;
   width: 100%;
   padding: 6px;
+  background: transparent;
+  color: #2d3748;
+  font-family: inherit;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .main-prompt-input::placeholder {
   color: #a0aec0;
 }
 
+/* Submit button */
 .main-submit-btn {
   border: none;
   background: #000;
@@ -440,6 +451,13 @@ input {
   border-radius: 50%;
   padding: 6px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
 .main-submit-btn:disabled {
@@ -447,10 +465,51 @@ input {
   cursor: not-allowed;
 }
 
+.main-submit-btn:hover:not(:disabled) {
+  background: #333;
+  transform: scale(1.05);
+}
+
 .send-arrow {
   transform: translateY(1px);
 }
 
+/* Icons inside input */
+.input-plus-icon {
+  color: #666;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.input-plus-icon:hover {
+  color: #ff416c;
+}
+
+/* Mic button */
+.mic-btn {
+  border: none;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.mic-btn:hover {
+  background: #f2f2f2;
+  color: #ff416c;
+}
 
 /* Floating scroll-to-bottom button */
 .scroll-btn {
@@ -464,6 +523,12 @@ input {
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   cursor: pointer;
   transition: background 0.2s;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 .scroll-btn:hover {
@@ -479,58 +544,7 @@ input {
   height: 60px;
   pointer-events: none;
   background: linear-gradient(to bottom, transparent, white);
-}
-
-/* Icons inside input */
-.input-plus-icon {
-  color: #666;
-  cursor: pointer;
-}
-
-.mic-btn {
-  border: none;
-  background: transparent;
-  color: #666;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-}
-
-.mic-btn:hover {
-  background: #f2f2f2;
-}
-
-.input-mic-icon {
-  color: #9ca3af;
-  align-self: flex-end; /* Keep icon at bottom */
-  cursor: pointer;
-  transition: color 0.2s ease;
-  flex-shrink: 0; /* Prevent icon from shrinking */
-  width: 16px; /* Fixed width */
-  height: 16px; /* Fixed height */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.input-plus-icon:hover,
-.input-mic-icon:hover {
-  color: #ff416c;
-}
-
-.main-submit-btn.active {
-  opacity: 1;
-  transform: scale(1.05);
-}
-
-.main-submit-btn:hover {
-  transform: scale(1.1);
-}
-
-.submit-icon {
-  width: 20px; /* Increased from 16px to fit the larger button */
-  height: 20px; /* Increased from 16px to fit the larger button */
-  object-fit: contain;
+  z-index: 4;
 }
 
 .main-loading-indicator {
@@ -539,16 +553,16 @@ input {
   justify-content: center;
   gap: 12px;
   margin: 20px auto;
-  color: #020202;
+  color: #ff416c;
   font-size: 14px;
   padding: 16px;
-  background: rgba(248, 246, 247, 0.1);
+  background: rgba(255, 65, 108, 0.1);
   border-radius: 12px;
   width: calc(100% - 40px); /* Match container width calculation */
   max-width: 1000px; /* Updated from 1400px to 1000px */
   box-sizing: border-box; /* Include padding in width calculation */
 }
-
+}
 
 .loading-dots {
   display: flex;
@@ -761,7 +775,7 @@ input {
 .chat-input-form {
   border-top: 1px solid #e2e8f0;
   padding: 10px 12px;
-  height: 80px;
+  height: 60px;
   display: flex;
   align-items: center;
 }
@@ -773,7 +787,7 @@ input {
   background: #fff5f7;
   border-radius: 25px;
   padding: 10px 15px;
-  height: 80px;
+  height: 60px;
   border: 1px solid #ffe0e6;
 }
 
