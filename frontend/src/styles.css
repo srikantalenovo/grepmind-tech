@@ -393,7 +393,7 @@ input {
   border-radius: 25px; /* Match input styling */
   padding: 8px; /* Reduced padding to prevent overflow */
   box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow for ChatGPT-like feel */
-  opacity: 1; /* Make it visible again for large document processing */
+  opacity: 0; /* Make it visible again for large document processing */
   pointer-events: auto; /* Re-enable interaction */
   overflow: hidden; /* Prevent any overflow */
   box-sizing: border-box; /* Include padding in width calculation */
