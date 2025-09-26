@@ -157,7 +157,19 @@ const Dashboard = () => {
           </div>
         )}
         
-        {/* Main Prompt Input Area */}
+        {/* Loading Indicator - Above Input */}
+        {isMainLoading && (
+          <div className="main-loading-indicator">
+            <div className="loading-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span>Processing your request...</span>
+          </div>
+        )}
+        
+        {/* Main Prompt Input Area - Bottom positioned */}
         <div className="main-prompt-container">
           <form onSubmit={handleMainPromptSubmit} className="main-prompt-form">
             <div className="main-input-wrapper">
@@ -177,19 +189,9 @@ const Dashboard = () => {
                 disabled={!mainPrompt.trim() || isMainLoading}
                 title="Send prompt"
               >
-                <FiSend />
+                <FiSend size={20} />
               </button>
             </div>
-            {isMainLoading && (
-              <div className="main-loading-indicator">
-                <div className="loading-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <span>Processing your request...</span>
-              </div>
-            )}
           </form>
         </div>
       </div>
@@ -284,7 +286,7 @@ const Dashboard = () => {
                         disabled={!inputValue.trim() || isLoading}
                         title="Send message"
                       >
-                        <FiSend />
+                        <FiSend size={16} />
                       </button>
                     </div>
                   </div>
