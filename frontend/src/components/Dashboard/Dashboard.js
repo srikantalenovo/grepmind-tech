@@ -6,11 +6,26 @@ import SendIcon from "@mui/icons-material/Send";
 const Dashboard = () => {
   const [message, setMessage] = useState("");
 
-  const handleSend = () => {
-    if (message.trim()) {
-      console.log("User message:", message);
-      setMessage("");
+  const handleSend = async () => {
+    if (!message.trim()) return;
+
+    try {
+      // Example API call (adjust endpoint if needed)
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await response.json();
+      console.log("Server response:", data);
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
+
+    setMessage("");
   };
 
   return (
@@ -18,10 +33,10 @@ const Dashboard = () => {
       {/* Main dashboard content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
         <h2>Welcome to GrepMind Dashboard</h2>
-        {/* Add your analyzer/resources/logs here */}
+        {/* analyzer/resources/logs content goes here */}
       </div>
 
-      {/* Chat input box */}
+      {/* Chat input section */}
       <Paper
         elevation={3}
         style={{
@@ -39,6 +54,9 @@ const Dashboard = () => {
           InputProps={{ disableUnderline: true }}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === "Enter") handleSend();
+          }}
           style={{
             marginLeft: "12px",
             marginRight: "8px",
@@ -46,7 +64,6 @@ const Dashboard = () => {
         />
         <IconButton
           onClick={handleSend}
-          color="primary"
           style={{
             backgroundColor: "#1976d2",
             color: "white",
