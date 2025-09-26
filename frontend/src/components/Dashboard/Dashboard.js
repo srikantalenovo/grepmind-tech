@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp } from 'react-icons/fi';
 import upArrowIcon from '../../assets/uparrow.png';
 import upSquareIcon from '../../assets/upsqure.png';
+import aiAssistantIcon from '../../assets/ai-assistant.png';
 
 const Dashboard = () => {
   // Chat widget states
@@ -175,10 +176,10 @@ const Dashboard = () => {
   const handleMainPromptChange = (e) => {
     setMainPrompt(e.target.value);
     
-    // Auto-resize textarea with more constrained height
+    // Auto-resize textarea with very constrained height
     const textarea = e.target;
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px'; // Reduced max height
+    textarea.style.height = Math.min(textarea.scrollHeight, 60) + 'px'; // Very reduced max height
   };
 
   // Handle Enter key to send in chat widget
@@ -244,7 +245,7 @@ const Dashboard = () => {
                 onKeyPress={handleMainKeyPress}
                 placeholder="Enter your prompt here... (Press Enter to send, Shift+Enter for new line)"
                 className="main-prompt-input"
-                rows="2"
+                rows="1"
                 disabled={isMainLoading}
               />
               <button
@@ -268,8 +269,14 @@ const Dashboard = () => {
           className="chat-toggle-btn"
           onClick={() => setIsChatOpen(!isChatOpen)}
         >
-          {isChatOpen ? <FiX size={24} /> : <FiMessageCircle size={24} />}
-          {!isChatOpen && <span className="chat-tooltip">AI Assistant</span>}
+          {isChatOpen ? (
+            <FiX size={24} />
+          ) : (
+            <div className="ai-assistant-button-content">
+              <img src={aiAssistantIcon} alt="AI Assistant" className="ai-assistant-icon" />
+              <span className="ai-assistant-text">AI Assistant</span>
+            </div>
+          )}
         </button>
 
         {/* Chat Panel */}
