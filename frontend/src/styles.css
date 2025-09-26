@@ -393,6 +393,8 @@ input {
   box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow for ChatGPT-like feel */
   opacity: 1; /* Make it visible again for large document processing */
   pointer-events: auto; /* Re-enable interaction */
+  overflow: hidden; /* Prevent any overflow */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .main-prompt-form {
@@ -416,6 +418,8 @@ input {
   width: 100%; /* Take full width of container */
   min-height: 60px; /* Increased min height for ChatGPT-like feel */
   margin: 0 auto; /* Center the wrapper */
+  overflow: hidden; /* Prevent icon overflow */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .main-input-wrapper:focus-within {
@@ -458,6 +462,9 @@ input {
   transition: all 0.2s ease;
   opacity: 0.5;
   align-self: flex-end; /* Keep button at bottom */
+  flex-shrink: 0; /* Prevent button from shrinking */
+  min-width: 40px; /* Ensure consistent width */
+  min-height: 40px; /* Ensure consistent height */
 }
 
 .input-plus-icon {
@@ -465,6 +472,9 @@ input {
   align-self: flex-end; /* Keep icon at bottom */
   cursor: pointer;
   transition: color 0.2s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  min-width: 16px; /* Ensure consistent width */
+  height: 16px; /* Ensure consistent height */
 }
 
 .input-mic-icon {
@@ -472,6 +482,9 @@ input {
   align-self: flex-end; /* Keep icon at bottom */
   cursor: pointer;
   transition: color 0.2s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  min-width: 16px; /* Ensure consistent width */
+  height: 16px; /* Ensure consistent height */
 }
 
 .input-plus-icon:hover,
