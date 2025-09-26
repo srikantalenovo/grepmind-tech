@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp } from 'react-icons/fi';
+import { FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp, FiPlus, FiMic } from 'react-icons/fi';
 import upArrowIcon from '../../assets/uparrow.png';
 import upSquareIcon from '../../assets/upsqure.png';
 import aiAssistantIcon from '../../assets/ai-assistant.png';
@@ -238,16 +238,18 @@ const Dashboard = () => {
         <div className="main-prompt-container">
           <form onSubmit={handleMainPromptSubmit} className="main-prompt-form">
             <div className="main-input-wrapper">
+              <FiPlus className="input-plus-icon" size={16} />
               <textarea
                 ref={mainPromptRef}
                 value={mainPrompt}
                 onChange={handleMainPromptChange}
                 onKeyPress={handleMainKeyPress}
-                placeholder="Enter your prompt here... (Press Enter to send, Shift+Enter for new line)"
+                placeholder="Ask anything"
                 className="main-prompt-input"
                 rows="1"
                 disabled={isMainLoading}
               />
+              <FiMic className="input-mic-icon" size={16} />
               <button
                 type="submit"
                 className={`main-submit-btn ${mainPrompt.trim() ? 'active' : ''}`}
