@@ -1,16 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiUser, FiMessageCircle, FiTrash2, FiPaperclip, FiX, FiChevronUp } from 'react-icons/fi';
+import { FiSend, FiUser, FiMessageCircle, FiTrash2, FiX, FiChevronUp } from 'react-icons/fi';
 
 const Dashboard = () => {
+  // Chat widget states
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [aiResponses, setAiResponses] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
+  
+  // Main dashboard states
+  const [mainPrompt, setMainPrompt] = useState('');
+  const [mainResponses, setMainResponses] = useState([]);
+  const [isMainLoading, setIsMainLoading] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const mainPromptRef = useRef(null);
 
   // Scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -21,23 +26,21 @@ const Dashboard = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Handle sending messages
+  // Handle sending messages in chat widget
   const handleSendMessage = async (e) => {
     e.preventDefault();
     
-    if (!inputValue.trim() && !selectedFile) return;
+    if (!inputValue.trim()) return;
 
     const userMessage = {
       id: Date.now(),
       text: inputValue,
       isUser: true,
-      timestamp: new Date().toLocaleTimeString(),
-      file: selectedFile
+      timestamp: new Date().toLocaleTimeString()
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
-    setSelectedFile(null);
     setIsLoading(true);
 
     // Simulate API response
@@ -54,6 +57,30 @@ const Dashboard = () => {
     }, 1500);
   };
 
+  // Handle main dashboard prompt submission
+  const handleMainPromptSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!mainPrompt.trim()) return;
+
+    const promptText = mainPrompt;
+    setMainPrompt('');
+    setIsMainLoading(true);
+
+    // Simulate API response
+    setTimeout(() => {
+      const response = {
+        id: Date.now(),
+        prompt: promptText,
+        response: generateResponse(promptText),
+        timestamp: new Date().toLocaleString()
+      };
+      
+      setMainResponses(prev => [response, ...prev]);
+      setIsMainLoading(false);
+    }, 2000);
+  };
+
   // Generate AI response
   const generateResponse = (prompt) => {
     const responses = [
@@ -66,20 +93,12 @@ const Dashboard = () => {
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
-  // Handle file selection
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-    }
-  };
-
   // Clear chat history
   const clearChat = () => {
     setMessages([]);
   };
 
-  // Handle textarea auto-resize
+  // Handle chat widget textarea auto-resize
   const handleInputChange = (e) => {
     setInputValue(e.target.value);
     
@@ -89,7 +108,17 @@ const Dashboard = () => {
     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   };
 
-  // Handle Enter key to send
+  // Handle main prompt textarea auto-resize
+  const handleMainPromptChange = (e) => {
+    setMainPrompt(e.target.value);
+    
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+  };
+
+  // Handle Enter key to send in chat widget
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -97,23 +126,71 @@ const Dashboard = () => {
     }
   };
 
+  // Handle Enter key to send in main prompt
+  const handleMainKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleMainPromptSubmit(e);
+    }
+  };
+
   return (
     <div className="dashboard-container">
       
-      {/* Main Dashboard Content - Clean and Minimal */}
+      {/* Main Dashboard Content - Full Width with Prompt Interface */}
       <div className="main-dashboard">
-        <div className="recent-activity">
-          <h2>Live Activity Feed</h2>
-          <ul className="activity-list">
-            <li className="activity-item">New user registration - John Doe</li>
-            <li className="activity-item">Project "Website Redesign" completed</li>
-            <li className="activity-item">Task "Update Documentation" assigned</li>
-            <li className="activity-item">New comment on Project "Mobile App"</li>
-            <li className="activity-item">Database backup completed successfully</li>
-            <li className="activity-item">System maintenance scheduled for tonight</li>
-            <li className="activity-item">New feature request submitted</li>
-            <li className="activity-item">User "Sarah Wilson" logged in</li>
-          </ul>
+        
+        {/* Responses Display Area */}
+        {mainResponses.length > 0 && (
+          <div className="main-responses-area">
+            {mainResponses.map((item) => (
+              <div key={item.id} className="main-response-card">
+                <div className="response-header">
+                  <span className="response-time">{item.timestamp}</span>
+                  <span className="response-prompt">Prompt: "{item.prompt.substring(0, 60)}..."</span>
+                </div>
+                <div className="response-content">
+                  {item.response}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Main Prompt Input Area */}
+        <div className="main-prompt-container">
+          <form onSubmit={handleMainPromptSubmit} className="main-prompt-form">
+            <div className="main-input-wrapper">
+              <textarea
+                ref={mainPromptRef}
+                value={mainPrompt}
+                onChange={handleMainPromptChange}
+                onKeyPress={handleMainKeyPress}
+                placeholder="Enter your prompt here... (Press Enter to send, Shift+Enter for new line)"
+                className="main-prompt-input"
+                rows="3"
+                disabled={isMainLoading}
+              />
+              <button
+                type="submit"
+                className={`main-submit-btn ${mainPrompt.trim() ? 'active' : ''}`}
+                disabled={!mainPrompt.trim() || isMainLoading}
+                title="Send prompt"
+              >
+                <FiSend />
+              </button>
+            </div>
+            {isMainLoading && (
+              <div className="main-loading-indicator">
+                <div className="loading-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <span>Processing your request...</span>
+              </div>
+            )}
+          </form>
         </div>
       </div>
 
@@ -125,7 +202,7 @@ const Dashboard = () => {
           className="chat-toggle-btn"
           onClick={() => setIsChatOpen(!isChatOpen)}
         >
-          {isChatOpen ? <FiX /> : <FiMessageCircle />}
+          {isChatOpen ? <FiX size={24} /> : <FiMessageCircle size={24} />}
           {!isChatOpen && <span className="chat-tooltip">AI Assistant</span>}
         </button>
 
@@ -160,11 +237,6 @@ const Dashboard = () => {
                     <div className="message-content">
                       <div className="message-text">
                         {message.text}
-                        {message.file && (
-                          <div className="message-file">
-                            📎 {message.file.name}
-                          </div>
-                        )}
                       </div>
                       <div className="message-time">{message.timestamp}</div>
                     </div>
@@ -205,34 +277,11 @@ const Dashboard = () => {
                   />
                   
                   <div className="input-actions">
-                    {selectedFile && (
-                      <div className="selected-file">
-                        <span>📎 {selectedFile.name}</span>
-                        <button 
-                          type="button"
-                          onClick={() => setSelectedFile(null)}
-                          className="remove-file-btn"
-                        >
-                          <FiX />
-                        </button>
-                      </div>
-                    )}
-                    
                     <div className="action-buttons">
                       <button
-                        type="button"
-                        onClick={() => fileInputRef.current.click()}
-                        className="attachment-btn"
-                        disabled={isLoading}
-                        title="Attach file"
-                      >
-                        <FiPaperclip />
-                      </button>
-                      
-                      <button
                         type="submit"
-                        className={`send-btn ${(inputValue.trim() || selectedFile) ? 'active' : ''}`}
-                        disabled={(!inputValue.trim() && !selectedFile) || isLoading}
+                        className={`send-btn ${inputValue.trim() ? 'active' : ''}`}
+                        disabled={!inputValue.trim() || isLoading}
                         title="Send message"
                       >
                         <FiSend />
@@ -240,14 +289,6 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.png,.gif"
-                />
               </form>
             </div>
           </div>
