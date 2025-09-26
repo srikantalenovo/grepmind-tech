@@ -219,22 +219,37 @@ const Dashboard = () => {
           <div className="main-responses-area">
             {mainResponses.map((item) => (
               <div key={item.id} className="main-response-card">
-                <div className="response-header">
-                  <span className="response-time">{item.timestamp}</span>
-                  <span className="response-prompt">Prompt: "{item.prompt.substring(0, 60)}..."</span>
+                {/* User Input Bubble */}
+                <div className="user-input-bubble">
+                  <p className="user-input-text">{item.prompt}</p>
                 </div>
-                <div className="response-content">
-                  {item.response}
-                  {item.isStreaming && <span className="streaming-cursor">|</span>}
-                </div>
+                
+                {/* Loading Dots (shown while streaming) */}
+                {item.isStreaming && (
+                  <div className="dot-loader">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                )}
+                
+                {/* AI Response Bubble (shown when response is available) */}
+                {item.response && (
+                  <div className="ai-response-bubble">
+                    <p className="ai-response-text">
+                      {item.response}
+                      {item.isStreaming && <span className="streaming-cursor">|</span>}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
             <div ref={mainResponsesEndRef} /> {/* Added scroll target for main responses */}
           </div>
         )}
         
-        {/* Loading Indicator - Above Input */}
-        {isMainLoading && (
+        {/* Loading Indicator for New Request */}
+        {isMainLoading && mainResponses.length === 0 && (
           <div className="main-loading-indicator">
             <div className="loading-dots">
               <span></span>
@@ -287,7 +302,7 @@ const Dashboard = () => {
           ) : (
             <div className="ai-assistant-button-content">
               <img src={aiAssistantIcon} alt="AI Assistant" className="ai-assistant-icon" />
-              <span className="ai-assistant-text">AI Assistant</span>
+              <span className="ai-assistant-text">AI-Assistant</span>
             </div>
           )}
         </button>
