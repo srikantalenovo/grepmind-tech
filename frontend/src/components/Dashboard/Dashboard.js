@@ -8,17 +8,39 @@ const Dashboard = () => {
   const [mainResponses, setMainResponses] = useState([]);
   const [isMainLoading, setIsMainLoading] = useState(false);
   
+  // Chat widget states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  
   const mainPromptRef = useRef(null);
   const mainResponsesEndRef = useRef(null); // Added ref for main responses scroll
+  const chatInputRef = useRef(null);
+  const chatMessagesEndRef = useRef(null);
 
   // Scroll to bottom when main responses change
   const scrollMainToBottom = () => {
     mainResponsesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  // Scroll to bottom when chat messages change
+  const scrollChatToBottom = () => {
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
     scrollMainToBottom();
   }, [mainResponses]); // Added effect for main responses
+
+  useEffect(() => {
+    scrollChatToBottom();
+  }, [chatMessages]);
+
+  // Toggle chat widget
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+  };
 
   // Handle main dashboard prompt submission with AI integration
   const handleMainPromptSubmit = async (e) => {
@@ -82,6 +104,55 @@ const Dashboard = () => {
       // Stream the fallback response
       await streamResponse(responseObj.id, responseObj.fullResponse);
     }
+  };
+
+  // Handle chat widget submission
+  const handleChatSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: chatInput,
+      isUser: true,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      // Simulate API call for chat assistant
+      setTimeout(() => {
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: generateChatResponse(userMessage.text),
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString()
+        };
+        
+        setChatMessages(prev => [...prev, aiMessage]);
+        setIsChatLoading(false);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Chat error:', error);
+      setIsChatLoading(false);
+    }
+  };
+
+  // Generate chat response
+  const generateChatResponse = (input) => {
+    const responses = [
+      "I'm here to help! What specific task would you like assistance with?",
+      "Great question! I can help you with data analysis, content creation, or technical support.",
+      "I understand. Let me provide some quick guidance on that topic.",
+      "Thanks for reaching out! Here's what I recommend for your situation.",
+      "I can definitely assist with that. Let me walk you through the process.",
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
   };
 
   // Stream response word by word
@@ -215,6 +286,76 @@ const Dashboard = () => {
           </form>
         </div>
       </div>
+
+      {/* Chat Widget */}
+      <div className={`chat-widget-container ${isChatOpen ? 'open' : ''}`}>
+        <div className="chat-header">
+          <h3>AI Assistant</h3>
+          <button onClick={toggleChat} className="chat-minimize-btn">
+            {isChatOpen ? '−' : '+'}
+          </button>
+        </div>
+        
+        {isChatOpen && (
+          <div className="chat-content">
+            <div className="chat-messages">
+              {chatMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`chat-message ${message.isUser ? 'user' : 'ai'}`}
+                >
+                  <div className="message-content">
+                    {message.text}
+                  </div>
+                  <div className="message-time">
+                    {message.timestamp}
+                  </div>
+                </div>
+              ))}
+              {isChatLoading && (
+                <div className="chat-message ai">
+                  <div className="message-content">
+                    <div className="typing-indicator">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={chatMessagesEndRef} />
+            </div>
+            
+            <form onSubmit={handleChatSubmit} className="chat-input-form">
+              <div className="chat-input-container">
+                <input
+                  ref={chatInputRef}
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type your message..."
+                  className="chat-input"
+                  disabled={isChatLoading}
+                />
+                <button
+                  type="submit"
+                  className="chat-send-btn"
+                  disabled={!chatInput.trim() || isChatLoading}
+                >
+                  <span>→</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* Chat Toggle Button (when chat is closed) */}
+      {!isChatOpen && (
+        <button onClick={toggleChat} className="chat-toggle-btn">
+          💬 AI Assistant
+        </button>
+      )}
     </div>
   );
 };
