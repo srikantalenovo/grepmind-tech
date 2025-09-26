@@ -380,36 +380,47 @@ input {
 
 /* =================== MAIN PROMPT INPUT =================== */
 
-/* Chat input container */
 .main-prompt-container {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 12px 16px;
-  background: #fff;
-  border-top: 1px solid #eee;
+  width: calc(100% - 40px); /* Account for page margins */
+  max-width: 1000px; /* Decreased from 1400px to 1000px */
+  margin: 0 auto; /* Center the container */
+  position: fixed; /* Keep it fixed at bottom */
+  bottom: 20px;
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Perfect center alignment */
+  z-index: 10; /* Ensure it stays on top */
+  background: white; /* Add background for visibility */
+  border-radius: 25px; /* Match input styling */
+  padding: 8px; /* Reduced padding to prevent overflow */
+  box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.15); /* Enhanced shadow for ChatGPT-like feel */
+  opacity: 0; /* Make it visible again for large document processing */
+  pointer-events: auto; /* Re-enable interaction */
+  overflow: hidden; /* Prevent any overflow */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
-/* Form layout */
 .main-prompt-form {
-  display: flex;
-  justify-content: center;
+  width: 100%;
+  margin: 0; /* Remove auto margin to prevent overflow */
+  box-sizing: border-box;
 }
 
-/* Input wrapper (chat bubble style) */
 .main-input-wrapper {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 28px;
-  padding: 8px 12px;
-  width: 100%;
-  max-width: 750px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 25px;
+  padding: 12px 16px; /* Reduced horizontal padding */
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: flex-end; /* Keep items aligned to bottom */
+  gap: 12px; /* Reduced gap to prevent overflow */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Enhanced shadow */
+  width: 100%; /* Take full width of container */
+  min-height: 60px; /* Increased min height for ChatGPT-like feel */
+  margin: 0; /* Remove margin */
+  overflow: hidden; /* Prevent icon overflow */
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 .main-input-wrapper:focus-within {
@@ -417,16 +428,22 @@ input {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(255, 65, 108, 0.1);
 }
 
-/* Textarea input */
 .main-prompt-input {
+  flex: 1;
+  min-height: 40px; /* Increased for better ChatGPT feel */
+  max-height: 300px; /* Increased max height for large inputs */
+  background: transparent;
   border: none;
   outline: none;
+  font-size: 15px; /* Increased for better readability */
+  line-height: 1.5; /* Improved line height */
+  color: #2d3748;
   resize: none;
-  overflow: hidden;
-  font-size: 15px;
-  flex: 1;
-  width: 100%;
-  padding: 6px;
+  font-family: inherit;
+  overflow-y: auto; /* Allow vertical scrolling when max-height is reached */
+  padding: 10px 0; /* Increased padding for better spacing */
+  margin: 0;
+  placeholder-color: #a0aec0; /* Softer placeholder color */
 }
 
 .main-prompt-input::placeholder {
@@ -434,70 +451,34 @@ input {
 }
 
 .main-submit-btn {
+  background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
   border: none;
-  background: #000;
-  color: #fff;
-  border-radius: 50%;
-  padding: 6px;
+  border-radius: 50%; /* Made it completely round */
+  width: 40px; /* Increased size for better visibility */
+  height: 40px; /* Made it perfectly round */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+  align-self: flex-end; /* Keep button at bottom */
+  flex-shrink: 0; /* Prevent button from shrinking */
+  min-width: 40px; /* Ensure consistent width */
+  min-height: 40px; /* Ensure consistent height */
 }
 
-.main-submit-btn:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
-
-.send-arrow {
-  transform: translateY(1px);
-}
-
-
-/* Floating scroll-to-bottom button */
-.scroll-btn {
-  position: absolute;
-  right: 16px;
-  bottom: 100px; /* above input bar */
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  padding: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.scroll-btn:hover {
-  background: #f5f5f5;
-}
-
-/* Fade overlay at bottom when not scrolled */
-.fade-overlay {
-  position: absolute;
-  bottom: 70px; /* just above input bar */
-  left: 0;
-  right: 0;
-  height: 60px;
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, white);
-}
-
-/* Icons inside input */
 .input-plus-icon {
-  color: #666;
+  color: #9ca3af;
+  align-self: flex-end; /* Keep icon at bottom */
   cursor: pointer;
-}
-
-.mic-btn {
-  border: none;
-  background: transparent;
-  color: #666;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-}
-
-.mic-btn:hover {
-  background: #f2f2f2;
+  transition: color 0.2s ease;
+  flex-shrink: 0; /* Prevent icon from shrinking */
+  width: 16px; /* Fixed width */
+  height: 16px; /* Fixed height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input-mic-icon {
