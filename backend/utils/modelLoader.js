@@ -402,7 +402,7 @@ class ModelLoader {
    */
   async initializeModelsDirectory() {
     try {
-      const baseDir = path.resolve('./models');
+      const baseDir = path.resolve('../models');
       await fs.ensureDir(baseDir);
       
       // Create subdirectories for each model type

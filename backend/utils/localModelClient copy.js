@@ -20,8 +20,8 @@ class LocalModelClient {
       console.log('🔍 Scanning for local model files...');
       
       // Scan chat models directory
-      const chatDir = path.resolve('./models/chat/');
-      const llmDir = path.resolve('./models/llm/');
+      const chatDir = path.resolve('../models/chat/');
+      const llmDir = path.resolve('../models/llm/');
       
       const chatModels = await this.scanModelDirectory(chatDir);
       const llmModels = await this.scanModelDirectory(llmDir);
