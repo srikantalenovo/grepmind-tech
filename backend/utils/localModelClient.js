@@ -3,6 +3,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import https from 'https';
 import { fileURLToPath } from 'url';
+import { localModelClientFallback } from './localModelClient.fallback.js';
 
 // Try to import node-llama-cpp, fallback if it fails
 let LlamaModel, LlamaContext, LlamaChatSession, llamaCppAvailable = false;
@@ -84,6 +85,23 @@ class LocalModelClient {
       // Use existing models or download recommended ones
       await this.ensureModelAvailable('chat', chatModels, chatDir);
       await this.ensureModelAvailable('llm', llmModels, llmDir);
+      
+      // Initialize enhanced fallback client with model information if needed
+      if (!llamaCppAvailable) {
+        console.log('🔧 Initializing enhanced fallback client with model information...');
+        
+        // Set model paths in the enhanced fallback client
+        if (this.modelPaths.get('chat')) {
+          localModelClientFallback.modelPaths.set('chat', this.modelPaths.get('chat'));
+        }
+        if (this.modelPaths.get('llm')) {
+          localModelClientFallback.modelPaths.set('llm', this.modelPaths.get('llm'));
+        }
+        
+        // Mark enhanced fallback as initialized
+        localModelClientFallback.isInitialized = true;
+        console.log('✅ Enhanced fallback client initialized with model information');
+      }
       
       this.isInitialized = true;
       return {
@@ -288,31 +306,10 @@ class LocalModelClient {
 
       // Check if node-llama-cpp is available
       if (!llamaCppAvailable) {
-        console.log(`🤖 [FALLBACK] Mock generation for model: ${modelInfo.name}`);
-        console.log(`💭 [FALLBACK] Prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+        console.log(`🤖 [ENHANCED FALLBACK] Using intelligent response system for: ${modelInfo.name}`);
         
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Generate a helpful mock response
-        const mockResponses = {
-          chat: [
-            "Hello! I'm a mock response from the fallback chat model. The actual model loading is experiencing compatibility issues with node-llama-cpp native binaries.",
-            "Hi there! This is a temporary response while we resolve the 'Illegal instruction' error with the GGUF model loader.",
-            "Greetings! I'm responding from the fallback system. The real TinyLlama model will be available once we fix the CPU instruction compatibility issue."
-          ],
-          llm: [
-            "This is a mock response from the fallback LLM system. The actual Llama-3.2-3B model encountered native binary compatibility issues.",
-            "I'm providing this placeholder response while we address the node-llama-cpp CPU instruction compatibility problem.",
-            "This temporary response is generated while we resolve the 'Illegal instruction' error that prevents proper model loading."
-          ]
-        };
-
-        const responses = mockResponses[modelType] || mockResponses.chat;
-        const response = responses[Math.floor(Math.random() * responses.length)];
-        
-        console.log(`✅ [FALLBACK] Generated mock response (${response.length} chars)`);
-        return response;
+        // Use the enhanced fallback client for intelligent responses
+        return await localModelClientFallback.generate(modelType, prompt, options);
       }
 
       console.log(`🤖 Generating with local model: ${modelInfo.name}`);
