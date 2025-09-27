@@ -20,7 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Options for preflight requests
-app.options('*', cors(corsOptions));
+app.options('/*', cors(corsOptions));
 
 // Request logging middleware
 app.use((req, res, next) => {
