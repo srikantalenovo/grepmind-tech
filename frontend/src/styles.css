@@ -286,6 +286,7 @@ input {
   font-weight: 500;
   color: #333;
   white-space: nowrap;
+  margin-left: 18px;
 }
 
 @keyframes pulse {
