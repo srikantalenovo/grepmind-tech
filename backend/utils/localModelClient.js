@@ -4,13 +4,11 @@ import https from 'https';
 import { fileURLToPath } from 'url';
 
 // Try to import node-llama-cpp, fail fast if not available
-let LlamaModel, LlamaContext, LlamaChatSession, llamaCppAvailable = false;
+let LlamaModel, llamaCppAvailable = false;
 
 try {
   const llamaCpp = await import('node-llama-cpp');
   LlamaModel = llamaCpp.LlamaModel;
-  LlamaContext = llamaCpp.LlamaContext;
-  LlamaChatSession = llamaCpp.LlamaChatSession;
   llamaCppAvailable = true;
   console.log('✅ node-llama-cpp loaded successfully');
 } catch (error) {
@@ -336,38 +334,28 @@ class LocalModelClient {
         console.log(`📥 Loading production model: ${modelInfo.path}`);
         
         const model = new LlamaModel({
-          modelPath: modelInfo.path,
-          gpuLayers: options.gpuLayers || 0, // CPU-first for stability
-          batchSize: options.batchSize || 512,
-          threads: options.threads || -1 // Auto-detect
+          model: modelInfo.path,
+          n_ctx: options.contextSize || 2048,
+          n_threads: options.threads || 4,
+          n_gpu_layers: options.gpuLayers || 0 // CPU-first for stability
         });
         
-        const context = new LlamaContext({
-          model: model,
-          contextSize: options.contextSize || 4096,
-          batchSize: options.batchSize || 512
-        });
-        
-        const session = new LlamaChatSession({
-          context: context
-        });
-        
-        this.loadedModels.set(modelType, { model, context, session });
+        this.loadedModels.set(modelType, { model });
         console.log(`✅ Production model loaded: ${modelInfo.name}`);
       }
       
-      const { session } = this.loadedModels.get(modelType);
+      const { model } = this.loadedModels.get(modelType);
       
       // Production inference
       console.log(`💭 [PRODUCTION] Processing: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
       
       const startTime = Date.now();
-      const response = await session.prompt(prompt, {
-        maxTokens: options.maxTokens || 512,
+      const response = await model.predict(prompt, {
+        n_predict: options.maxTokens || 512,
         temperature: options.temperature || 0.7,
-        topP: options.topP || 0.9,
-        topK: options.topK || 40,
-        repeatPenalty: options.repeatPenalty || 1.1
+        top_p: options.topP || 0.9,
+        top_k: options.topK || 40,
+        repeat_penalty: options.repeatPenalty || 1.1
       });
       
       const duration = Date.now() - startTime;
@@ -422,48 +410,50 @@ class LocalModelClient {
         console.log(`📥 Loading model for production streaming: ${modelInfo.path}`);
         
         const model = new LlamaModel({
-          modelPath: modelInfo.path,
-          gpuLayers: options.gpuLayers || 0
+          model: modelInfo.path,
+          n_ctx: options.contextSize || 2048,
+          n_threads: options.threads || 4,
+          n_gpu_layers: options.gpuLayers || 0
         });
         
-        const context = new LlamaContext({
-          model: model,
-          contextSize: options.contextSize || 4096
-        });
-        
-        const session = new LlamaChatSession({
-          context: context
-        });
-        
-        this.loadedModels.set(modelType, { model, context, session });
+        this.loadedModels.set(modelType, { model });
         console.log(`✅ Production streaming model loaded: ${modelInfo.name}`);
       }
       
-      const { session } = this.loadedModels.get(modelType);
+      const { model } = this.loadedModels.get(modelType);
       
-      // Production streaming
-      let fullResponse = '';
-      for await (const chunk of session.promptWithMeta(prompt, {
-        maxTokens: options.maxTokens || 512,
+      // Production streaming - simplified approach
+      console.log(`🤖 [PRODUCTION] Streaming with model: ${modelInfo.name}`);
+      
+      const startTime = Date.now();
+      const response = await model.predict(prompt, {
+        n_predict: options.maxTokens || 512,
         temperature: options.temperature || 0.7,
-        topP: options.topP || 0.9,
-        topK: options.topK || 40,
-        onToken: (chunk) => {
-          fullResponse += chunk;
-          return chunk;
-        }
-      })) {
+        top_p: options.topP || 0.9,
+        top_k: options.topK || 40
+      });
+      
+      const duration = Date.now() - startTime;
+      console.log(`✅ [PRODUCTION STREAM] Response generated in ${duration}ms`);
+      
+      // Simulate streaming by chunking the response
+      const chunkSize = 10;
+      for (let i = 0; i < response.length; i += chunkSize) {
+        const chunk = response.slice(i, i + chunkSize);
         yield {
           type: 'content',
           content: chunk,
           done: false,
           model: modelInfo.name
         };
+        
+        // Small delay to simulate streaming
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
       
       yield {
         type: 'complete',
-        content: fullResponse,
+        content: response,
         done: true,
         model: modelInfo.name
       };
@@ -484,9 +474,11 @@ class LocalModelClient {
   async cleanup() {
     console.log('🧹 [PRODUCTION] Cleaning up model resources...');
     
-    for (const [modelType, { context }] of this.loadedModels.entries()) {
+    for (const [modelType, { model }] of this.loadedModels.entries()) {
       try {
-        await context.dispose();
+        if (model && typeof model.dispose === 'function') {
+          await model.dispose();
+        }
         console.log(`✅ Cleaned up production model: ${modelType}`);
       } catch (error) {
         console.warn(`⚠️  Failed to cleanup model ${modelType}:`, error.message);
