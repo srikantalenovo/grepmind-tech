@@ -99,67 +99,112 @@ class ChatBotService {
       // Get the loaded chat model
       const model = modelLoader.getModel('chat');
       
-      // Prepare context from conversation history
-      const context = this.buildContext(history.slice(-10)); // Last 10 messages for context
+      // Prepare messages for chat model (Ollama chat format)
+      const messages = this.buildMessagesArray(history, message);
       
-      // Generate response
-      const response = await model.generate(message, {
-        context,
+      console.log(`💬 Processing chat with ${model.name}...`);
+      
+      // Use chat method for conversational models
+      const response = await model.chat(messages, {
         maxTokens: options.maxTokens || AI_CONFIG.models.chat.maxTokens,
-        temperature: options.temperature || AI_CONFIG.models.chat.temperature
+        temperature: options.temperature || AI_CONFIG.models.chat.temperature,
+        topP: options.topP || 0.9,
+        topK: options.topK || 40
       });
 
       return response;
     } catch (error) {
-      console.error('Error processing message with AI model:', error);
-      return this.getFallbackResponse(message);
+      console.error('Error processing message with AI model:', error.message);
+      
+      // Return more specific error information
+      if (error.message.includes('not loaded')) {
+        return this.getFallbackResponse(message, 'Chat model not loaded. Please check Ollama setup.');
+      } else if (error.message.includes('Ollama')) {
+        return this.getFallbackResponse(message, 'Ollama connection issue. Please check if Ollama is running.');
+      } else {
+        return this.getFallbackResponse(message, error.message);
+      }
     }
   }
 
   /**
-   * Build context from conversation history
+   * Build messages array for Ollama chat API
    */
-  buildContext(history) {
-    if (history.length === 0) {
-      return 'You are a helpful AI assistant having a friendly conversation.';
-    }
-
-    let context = 'Conversation history:\n';
-    history.forEach(msg => {
-      context += `${msg.role}: ${msg.content}\n`;
+  buildMessagesArray(history, currentMessage) {
+    const messages = [];
+    
+    // Add system message
+    messages.push({
+      role: 'system',
+      content: 'You are a helpful, friendly AI assistant. Provide clear, concise, and helpful responses in a conversational tone.'
     });
     
-    return context;
+    // Add conversation history (limit to last 8 messages to avoid context overflow)
+    const recentHistory = history.slice(-8);
+    recentHistory.forEach(msg => {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        messages.push({
+          role: msg.role,
+          content: msg.content
+        });
+      }
+    });
+    
+    // Add current message
+    messages.push({
+      role: 'user',
+      content: currentMessage
+    });
+    
+    return messages;
   }
 
   /**
    * Get fallback response when AI model fails
    */
-  getFallbackResponse(message) {
-    const fallbackResponses = [
-      "I understand you're asking about that. Could you provide a bit more detail?",
-      "That's an interesting topic! I'd love to help you explore it further.",
-      "I'm here to help! Can you tell me more about what you're looking for?",
-      "Thanks for your message! What specific aspect would you like to discuss?",
-      "I appreciate you reaching out. How can I assist you with that?"
-    ];
+  getFallbackResponse(message, errorDetails = null) {
+    // If there's an error, provide troubleshooting info
+    if (errorDetails) {
+      return `I apologize, but I'm having trouble responding right now. 
 
-    // Simple keyword-based responses
+**Error:** ${errorDetails}
+
+**To fix this:**
+1. Make sure Ollama is running: \`ollama serve\`
+2. Install the chat model: \`ollama pull phi3:mini\`
+3. Check available models: \`ollama list\`
+
+Once the setup is complete, I'll be able to have a proper conversation with you!`;
+    }
+
+    // Regular conversation handling
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+    if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
       return RESPONSE_TEMPLATES.chat.greeting;
     }
     
     if (lowerMessage.includes('help')) {
-      return "I'm here to help! You can ask me questions about various topics, and I'll do my best to provide useful information and assistance.";
+      return "I'm here to help! You can ask me questions about various topics, and I'll do my best to provide useful information and assistance. What would you like to know about?";
     }
     
     if (lowerMessage.includes('thanks') || lowerMessage.includes('thank you')) {
-      return "You're welcome! I'm glad I could help. Is there anything else you'd like to know?";
+      return "You're very welcome! I'm glad I could help. Is there anything else you'd like to discuss?";
     }
 
-    // Return random fallback response
+    if (lowerMessage.includes('bye') || lowerMessage.includes('goodbye')) {
+      return "Goodbye! It was nice chatting with you. Feel free to come back anytime if you have more questions!";
+    }
+
+    // Default conversational responses
+    const fallbackResponses = [
+      "That's interesting! Could you tell me more about that?",
+      "I'd love to help you with that. Can you provide a bit more detail?",
+      "That's a great question! What specific aspect would you like to explore?",
+      "I'm here to assist you. What would you like to know more about?",
+      "Thanks for sharing that with me. How can I help you further?"
+    ];
+
     return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
   }
 
@@ -237,28 +282,80 @@ class ChatBotService {
    */
   async* streamResponse(sessionId, message, options = {}) {
     try {
-      yield { type: 'status', content: RESPONSE_TEMPLATES.chat.thinking };
+      yield { type: 'status', content: 'Thinking...' };
       
-      const response = await this.generateResponse(sessionId, message, options);
+      // Check rate limiting
+      if (this.isRateLimited(sessionId)) {
+        yield { type: 'error', content: 'Rate limit exceeded. Please wait before sending another message.' };
+        return;
+      }
+
+      // Get conversation history
+      const history = this.getConversationHistory(sessionId);
       
-      if (response.success) {
-        // Simulate streaming by breaking response into chunks
-        const words = response.response.split(' ');
-        let currentText = '';
+      // Add user message to history
+      history.push({
+        role: 'user',
+        content: message.trim(),
+        timestamp: new Date().toISOString()
+      });
+
+      try {
+        // Get the loaded chat model
+        const model = modelLoader.getModel('chat');
+        
+        // Prepare messages for chat
+        const messages = this.buildMessagesArray(history, message);
+        
+        yield { type: 'status', content: `Generating response with ${model.name}...` };
+        
+        // Stream the response
+        let fullResponse = '';
+        
+        // Note: For chat models, we'll use the generate method and simulate streaming
+        // since the Ollama chat API doesn't always support streaming in the same way
+        const response = await model.chat(messages, {
+          maxTokens: options.maxTokens || AI_CONFIG.models.chat.maxTokens,
+          temperature: options.temperature || AI_CONFIG.models.chat.temperature
+        });
+        
+        // Simulate streaming by breaking response into words
+        const words = response.split(' ');
         
         for (let i = 0; i < words.length; i++) {
-          currentText += words[i] + ' ';
+          fullResponse += words[i] + (i < words.length - 1 ? ' ' : '');
           yield { 
             type: 'content', 
-            content: currentText.trim(),
+            content: fullResponse,
             isComplete: i === words.length - 1
           };
           
           // Small delay for streaming effect
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise(resolve => setTimeout(resolve, 30));
         }
-      } else {
-        yield { type: 'error', content: response.error };
+        
+        // Add AI response to history
+        history.push({
+          role: 'assistant',
+          content: fullResponse,
+          timestamp: new Date().toISOString()
+        });
+
+        // Update conversation history (keep last 20 messages)
+        if (history.length > 20) {
+          history.splice(0, history.length - 20);
+        }
+        this.conversationHistory.set(sessionId, history);
+
+        // Update rate limiting
+        this.updateRateLimit(sessionId);
+        
+      } catch (error) {
+        console.error('Error streaming chat response:', error.message);
+        yield { 
+          type: 'error', 
+          content: `Chat failed: ${error.message}. Please check if Ollama is running and chat model is available.`
+        };
       }
     } catch (error) {
       yield { type: 'error', content: error.message };

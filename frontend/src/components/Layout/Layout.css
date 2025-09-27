@@ -391,3 +391,74 @@
 .activity-item:last-child {
   border-bottom: none;
 }
+
+/* AI Status Indicator in Header */
+.ai-status-header {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 20px;
+  padding: 6px 12px;
+  margin-right: 8px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.ai-status-header.ready {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.ai-status-header.loading {
+  background: rgba(234, 179, 8, 0.1);
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.ai-status-header .status-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-status-header .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: none;
+}
+
+.ai-status-header .status-dot.ready {
+  background-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+.ai-status-header .status-dot.loading {
+  background-color: #eab308;
+  animation: pulse-loading 1.5s infinite;
+}
+
+.ai-status-header .status-dot.error {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.ai-status-header .status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.ai-status-header.ready .status-text {
+  color: #059669;
+}
+
+.ai-status-header.loading .status-text {
+  color: #d97706;
+}
+
+@keyframes pulse-loading {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

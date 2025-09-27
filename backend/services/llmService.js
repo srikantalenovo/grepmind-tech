@@ -98,7 +98,8 @@ class LLMService {
       // Prepare prompt with context
       const enrichedPrompt = this.enrichPrompt(prompt, options);
       
-      // Generate response
+      // Generate response using Ollama
+      console.log(`🔥 Processing prompt with ${model.name}...`);
       const response = await model.generate(enrichedPrompt, {
         maxTokens: options.maxTokens || AI_CONFIG.models.llm.maxTokens,
         temperature: options.temperature || AI_CONFIG.models.llm.temperature,
@@ -111,8 +112,16 @@ class LLMService {
       return this.postProcessResponse(response, options);
 
     } catch (error) {
-      console.error('Error processing prompt with LLM model:', error);
-      return this.getFallbackResponse(prompt);
+      console.error('Error processing prompt with LLM model:', error.message);
+      
+      // Return more specific error information
+      if (error.message.includes('not loaded')) {
+        return this.getFallbackResponse(prompt, 'Model not loaded. Please check Ollama setup.');
+      } else if (error.message.includes('Ollama')) {
+        return this.getFallbackResponse(prompt, 'Ollama connection issue. Please check if Ollama is running.');
+      } else {
+        return this.getFallbackResponse(prompt, error.message);
+      }
     }
   }
 
@@ -253,33 +262,38 @@ class LLMService {
   /**
    * Get fallback response when AI model fails
    */
-  getFallbackResponse(prompt) {
-    // Analyze prompt to provide contextual fallback
-    const lowerPrompt = prompt.toLowerCase();
+  getFallbackResponse(prompt, errorDetails = null) {
+    const shortPrompt = prompt.slice(0, 50) + (prompt.length > 50 ? '...' : '');
     
-    if (lowerPrompt.includes('code') || lowerPrompt.includes('programming')) {
-      return "I understand you're asking about programming or code. While I'm currently running in development mode with simulated responses, I can still try to help. Could you provide more specific details about what you're trying to accomplish?";
-    }
-    
-    if (lowerPrompt.includes('explain') || lowerPrompt.includes('what is')) {
-      return "You're asking for an explanation. I'd be happy to help break down complex topics. In the current development mode, I'm providing simulated responses, but I can still offer general guidance on your topic of interest.";
-    }
-    
-    if (lowerPrompt.includes('help') || lowerPrompt.includes('how to')) {
-      return "I see you're looking for help or guidance. While I'm currently in development mode with simulated AI responses, I can still provide general assistance. What specific area would you like help with?";
+    let errorMessage = '';
+    if (errorDetails) {
+      errorMessage = `\n\n**Error Details:** ${errorDetails}`;
     }
 
-    return `I've received your prompt about "${prompt.slice(0, 50)}${prompt.length > 50 ? '...' : ''}". 
+    // Provide helpful troubleshooting information
+    return `I apologize, but I encountered an issue processing your request: "${shortPrompt}"${errorMessage}
 
-Currently running in development mode with simulated AI responses. In production, this would be processed by our minimal LLM model to provide detailed, contextual responses.
+**Troubleshooting Steps:**
 
-Key aspects I would address:
-• Analysis of your specific request
-• Relevant information and insights
-• Actionable suggestions or solutions
-• Follow-up questions for clarification
+1. **Check Ollama Status:**
+   - Ensure Ollama is running: \`ollama serve\`
+   - Verify available models: \`ollama list\`
 
-Is there a particular aspect of your request you'd like me to focus on?`;
+2. **Install Required Models:**
+   - For chat: \`ollama pull phi3:mini\`
+   - For LLM: \`ollama pull llama3.2:3b\`
+
+3. **Alternative Models:**
+   - Try: \`ollama pull qwen2:1.5b\` (lightweight)
+   - Try: \`ollama pull mistral:7b\` (more capable)
+
+4. **Check Connection:**
+   - Ollama should be running on http://localhost:11434
+   - Test with: \`curl http://localhost:11434/api/tags\`
+
+Once Ollama is properly set up with the required models, please try your request again. I'll be able to provide detailed, contextual responses to your questions.
+
+Would you like help with any of these setup steps?`;
   }
 
   /**
@@ -338,33 +352,31 @@ Is there a particular aspect of your request you'd like me to focus on?`;
    */
   async* streamResponse(prompt, options = {}) {
     try {
-      yield { type: 'status', content: RESPONSE_TEMPLATES.llm.processing };
+      yield { type: 'status', content: 'Connecting to AI model...' };
       
-      const response = await this.generateResponse(prompt, options);
+      // Get the loaded LLM model
+      const model = modelLoader.getModel('llm');
       
-      if (response.success) {
-        yield { type: 'status', content: RESPONSE_TEMPLATES.llm.generating };
-        
-        // Simulate streaming by breaking response into sentences
-        const sentences = response.response.split(/[.!?]+/).filter(s => s.trim());
-        let currentText = '';
-        
-        for (let i = 0; i < sentences.length; i++) {
-          currentText += sentences[i] + (i < sentences.length - 1 ? '. ' : '');
-          yield { 
-            type: 'content', 
-            content: currentText.trim(),
-            isComplete: i === sentences.length - 1
-          };
-          
-          // Longer delay for LLM streaming
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-      } else {
-        yield { type: 'error', content: response.error };
-      }
+      // Prepare prompt with context
+      const enrichedPrompt = this.enrichPrompt(prompt, options);
+      
+      yield { type: 'status', content: `Generating response with ${model.name}...` };
+      
+      // Use the model's streaming capability
+      yield* model.stream(enrichedPrompt, {
+        maxTokens: options.maxTokens || AI_CONFIG.models.llm.maxTokens,
+        temperature: options.temperature || AI_CONFIG.models.llm.temperature,
+        stopSequences: options.stopSequences || [],
+        topP: options.topP || 0.9,
+        topK: options.topK || 40
+      });
+      
     } catch (error) {
-      yield { type: 'error', content: error.message };
+      console.error('Error streaming LLM response:', error.message);
+      yield { 
+        type: 'error', 
+        content: `Streaming failed: ${error.message}. Please check if Ollama is running and models are available.`
+      };
     }
   }
 

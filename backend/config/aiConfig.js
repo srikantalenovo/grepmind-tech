@@ -1,25 +1,36 @@
 export const AI_CONFIG = {
-  // Model configurations for lightweight models
+  // Ollama connection settings
+  ollama: {
+    baseURL: 'http://localhost:11434',
+    timeout: 60000,
+    retries: 3
+  },
+
+  // Model configurations for Ollama models
   models: {
     chat: {
-      name: 'lightweight-chat',
+      name: 'phi3:mini',  // Lightweight conversational model
       type: 'conversational',
       maxTokens: 150,
       temperature: 0.7,
       description: 'Lightweight conversational model for chat widget',
-      modelPath: './models/chat/',
-      isLocal: true,
-      enabled: true
+      modelPath: './models/chat/',  // Local backup path
+      ollamaModel: 'phi3:mini',     // Ollama model name
+      isLocal: false,  // Using Ollama instead of local files
+      enabled: true,
+      fallbackModels: ['llama3.2:3b', 'qwen2:1.5b']  // Fallback options
     },
     llm: {
-      name: 'minimal-llm',
+      name: 'llama3.2:3b',  // Main LLM model
       type: 'text-generation',
-      maxTokens: 500,
+      maxTokens: 2048,
       temperature: 0.6,
-      description: 'Minimal LLM for main prompt processing',
-      modelPath: './models/llm/',
-      isLocal: true,
-      enabled: true
+      description: 'Main LLM for prompt processing and text generation',
+      modelPath: './models/llm/',   // Local backup path
+      ollamaModel: 'llama3.2:3b',  // Ollama model name
+      isLocal: false,  // Using Ollama instead of local files
+      enabled: true,
+      fallbackModels: ['phi3:mini', 'qwen2:7b', 'mistral:7b']  // Fallback options
     }
   },
   
