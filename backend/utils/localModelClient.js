@@ -20,8 +20,8 @@ class LocalModelClient {
   async initialize() {
     console.log('🔍 Scanning for local GGUF model files...');
 
-    const chatDir = path.resolve(__dirname, './models/chat/');
-    const llmDir = path.resolve(__dirname, './models/llm/');
+    const chatDir = path.resolve(__dirname, '../models/chat/');
+    const llmDir = path.resolve(__dirname, '../models/llm/');
 
     const chatModels = await this.scanModelDirectory(chatDir);
     const llmModels = await this.scanModelDirectory(llmDir);
