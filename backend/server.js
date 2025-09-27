@@ -19,8 +19,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Options for preflight requests
-app.options('/', cors(corsOptions));
+// Options for preflight requests (handled automatically by CORS middleware above)
+// app.options('*', cors(corsOptions)); // Removed - CORS middleware handles this automatically
 
 // Request logging middleware
 app.use((req, res, next) => {

@@ -1,9 +1,24 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { spawn } from 'child_process';
-import { LlamaModel, LlamaContext, LlamaChatSession } from 'node-llama-cpp';
 import https from 'https';
 import { fileURLToPath } from 'url';
+
+// Try to import node-llama-cpp, fallback if it fails
+let LlamaModel, LlamaContext, LlamaChatSession, llamaCppAvailable = false;
+
+try {
+  const llamaCpp = await import('node-llama-cpp');
+  LlamaModel = llamaCpp.LlamaModel;
+  LlamaContext = llamaCpp.LlamaContext;
+  LlamaChatSession = llamaCpp.LlamaChatSession;
+  llamaCppAvailable = true;
+  console.log('✅ node-llama-cpp loaded successfully');
+} catch (error) {
+  console.warn('⚠️  node-llama-cpp failed to load:', error.message);
+  console.warn('🔄 Will use fallback implementation');
+  llamaCppAvailable = false;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,7 +61,13 @@ class LocalModelClient {
       }
 
       console.log('🔍 Initializing local GGUF model client...');
-      console.log('✅ node-llama-cpp v2.8.0 loaded successfully');
+      
+      if (!llamaCppAvailable) {
+        console.log('⚠️  node-llama-cpp not available, using fallback mode');
+        console.log('📋 Model files will be tracked but inference will use mock responses');
+      } else {
+        console.log('✅ node-llama-cpp v2.8.0 loaded successfully');
+      }
       
       // Scan for existing models first
       const chatDir = path.resolve('./models/chat/');
@@ -68,7 +89,8 @@ class LocalModelClient {
       return {
         success: true,
         chatModel: this.modelPaths.get('chat'),
-        llmModel: this.modelPaths.get('llm')
+        llmModel: this.modelPaths.get('llm'),
+        fallbackMode: !llamaCppAvailable
       };
     } catch (error) {
       console.error('Failed to initialize local models:', error.message);
@@ -264,6 +286,35 @@ class LocalModelClient {
         throw new Error(`No ${modelType} model available`);
       }
 
+      // Check if node-llama-cpp is available
+      if (!llamaCppAvailable) {
+        console.log(`🤖 [FALLBACK] Mock generation for model: ${modelInfo.name}`);
+        console.log(`💭 [FALLBACK] Prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+        
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Generate a helpful mock response
+        const mockResponses = {
+          chat: [
+            "Hello! I'm a mock response from the fallback chat model. The actual model loading is experiencing compatibility issues with node-llama-cpp native binaries.",
+            "Hi there! This is a temporary response while we resolve the 'Illegal instruction' error with the GGUF model loader.",
+            "Greetings! I'm responding from the fallback system. The real TinyLlama model will be available once we fix the CPU instruction compatibility issue."
+          ],
+          llm: [
+            "This is a mock response from the fallback LLM system. The actual Llama-3.2-3B model encountered native binary compatibility issues.",
+            "I'm providing this placeholder response while we address the node-llama-cpp CPU instruction compatibility problem.",
+            "This temporary response is generated while we resolve the 'Illegal instruction' error that prevents proper model loading."
+          ]
+        };
+
+        const responses = mockResponses[modelType] || mockResponses.chat;
+        const response = responses[Math.floor(Math.random() * responses.length)];
+        
+        console.log(`✅ [FALLBACK] Generated mock response (${response.length} chars)`);
+        return response;
+      }
+
       console.log(`🤖 Generating with local model: ${modelInfo.name}`);
       
       // Load model if not already loaded
@@ -334,6 +385,33 @@ class LocalModelClient {
       const modelInfo = this.modelPaths.get(modelType);
       if (!modelInfo) {
         throw new Error(`No ${modelType} model available`);
+      }
+
+      // Check if node-llama-cpp is available
+      if (!llamaCppAvailable) {
+        console.log(`🤖 [FALLBACK] Mock streaming for model: ${modelType}`);
+        
+        const response = await this.generate(modelType, prompt, options);
+        const words = response.split(' ');
+        
+        // Simulate streaming by yielding words
+        for (let i = 0; i < words.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          yield {
+            type: 'content',
+            content: words[i] + (i < words.length - 1 ? ' ' : ''),
+            done: false
+          };
+        }
+        
+        yield {
+          type: 'content',
+          content: response,
+          done: true
+        };
+        
+        return;
       }
 
       console.log(`🤖 Streaming with local model: ${modelInfo.name}`);
