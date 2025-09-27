@@ -9,7 +9,7 @@ class OllamaClient {
     this.baseURL = baseURL;
     this.client = axios.create({
       baseURL: this.baseURL,
-      timeout: 60000, // 60 second timeout for AI responses
+      timeout: 600000, // 60 second timeout for AI responses
       headers: {
         'Content-Type': 'application/json'
       }
