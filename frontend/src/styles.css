@@ -231,7 +231,7 @@ input {
 .ai-status-indicator {
   position: fixed;
   top: 20px;
-  right: 20px;
+  left: 20px;
   z-index: 1001;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
@@ -286,7 +286,6 @@ input {
   font-weight: 500;
   color: #333;
   white-space: nowrap;
-  margin-left: 18px;
 }
 
 @keyframes pulse {
