@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
+import { LlamaModel, LlamaContext, LlamaChatSession } from "node-llama-cpp";
 
 // Try to import node-llama-cpp, fail fast if not available
 let LlamaModel, llamaCppAvailable = false;
@@ -396,82 +397,81 @@ class LocalModelClient {
   /**
    * Production streaming generation
    */
-  async* generateStream(modelType, prompt, options = {}) {
-    try {
-      if (!this.isInitialized || !llamaCppAvailable) {
-        throw new Error('Production streaming requires initialized native model support');
-      }
 
-      const modelInfo = this.modelPaths.get(modelType);
-      if (!modelInfo) {
-        throw new Error(`Production model '${modelType}' is not available for streaming`);
-      }
 
-      console.log(`🤖 [PRODUCTION] Streaming with model: ${modelInfo.name}`);
-      
-      // Load model if not already loaded
-      if (!this.loadedModels.has(modelType)) {
-        console.log(`📥 Loading model for production streaming: ${modelInfo.path}`);
-        
-        const model = new LlamaModel({
-          model: modelInfo.path,
-          n_ctx: options.contextSize || 2048,
-          n_threads: options.threads || 4,
-          n_gpu_layers: options.gpuLayers || 0
-        });
-        
-        this.loadedModels.set(modelType, { model });
-        console.log(`✅ Production streaming model loaded: ${modelInfo.name}`);
-      }
-      
-      const { model } = this.loadedModels.get(modelType);
-      
-      // Production streaming - simplified approach
-      console.log(`🤖 [PRODUCTION] Streaming with model: ${modelInfo.name}`);
-      
-      const startTime = Date.now();
-      const response = await model.predict(prompt, {
-        n_predict: options.maxTokens || 512,
-        temperature: options.temperature || 0.7,
-        top_p: options.topP || 0.9,
-        top_k: options.topK || 40
-      });
-      
-      const duration = Date.now() - startTime;
-      console.log(`✅ [PRODUCTION STREAM] Response generated in ${duration}ms`);
-      
-      // Simulate streaming by chunking the response
-      const chunkSize = 10;
-      for (let i = 0; i < response.length; i += chunkSize) {
-        const chunk = response.slice(i, i + chunkSize);
-        yield {
-          type: 'content',
-          content: chunk,
-          done: false,
-          model: modelInfo.name
-        };
-        
-        // Small delay to simulate streaming
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      
-      yield {
-        type: 'complete',
-        content: response,
-        done: true,
-        model: modelInfo.name
-      };
-      
-    } catch (error) {
-      console.error(`❌ [PRODUCTION] Streaming failed:`, error.message);
-      yield {
-        type: 'error',
-        content: `Production streaming error: ${error.message}`,
-        error: true
-      };
+async* generateStream(modelType, prompt, options = {}) {
+  try {
+    if (!this.isInitialized || !llamaCppAvailable) {
+      throw new Error("Production streaming requires initialized native model support");
     }
-  }
 
+    const modelInfo = this.modelPaths.get(modelType);
+    if (!modelInfo) {
+      throw new Error(`Production model '${modelType}' is not available for streaming`);
+    }
+
+    console.log(`📥 Loading model for production streaming: ${modelInfo.path}`);
+
+    if (!this.loadedModels.has(modelType)) {
+      // 1. Load model
+      const model = new LlamaModel({
+        modelPath: modelInfo.path,
+      });
+
+      // 2. Create context
+      const context = new LlamaContext({ model, contextSize: options.contextSize || 2048 });
+
+      // 3. Create chat/session handler
+      const session = new LlamaChatSession({ context });
+
+      this.loadedModels.set(modelType, { model, context, session });
+      console.log(`✅ Production streaming model loaded: ${modelInfo.name}`);
+    }
+
+    const { session } = this.loadedModels.get(modelType);
+
+    console.log(`🤖 [PRODUCTION] Streaming with model: ${modelInfo.name}`);
+
+    const startTime = Date.now();
+
+    // 4. Get response
+    const response = await session.prompt(prompt, {
+      maxTokens: options.maxTokens || 512,
+      temperature: options.temperature || 0.7,
+      topP: options.topP || 0.9,
+      topK: options.topK || 40,
+    });
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ [PRODUCTION STREAM] Response generated in ${duration}ms`);
+
+    // Stream chunked response
+    const chunkSize = 10;
+    for (let i = 0; i < response.length; i += chunkSize) {
+      yield {
+        type: "content",
+        content: response.slice(i, i + chunkSize),
+        done: false,
+        model: modelInfo.name,
+      };
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    yield {
+      type: "complete",
+      content: response,
+      done: true,
+      model: modelInfo.name,
+    };
+  } catch (error) {
+    console.error(`❌ [PRODUCTION] Streaming failed:`, error.message);
+    yield {
+      type: "error",
+      content: `Production streaming error: ${error.message}`,
+      error: true,
+    };
+  }
+}
   /**
    * Production cleanup - free memory resources
    */
