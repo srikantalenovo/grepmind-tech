@@ -140,18 +140,11 @@ router.post('/chat', ensureInitialized, asyncHandler(async (req, res) => {
 
     const result = await aiService.processChat(sessionId, message, options);
 
-    if (result.success) {
-      res.json({
-        success: true,
-        data: result
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        error: result.error,
-        fallbackResponse: result.response
-      });
-    }
+    res.json({
+      success: true,
+      data: result,
+      productionMode: true
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -267,18 +260,11 @@ router.post('/generate', ensureInitialized, asyncHandler(async (req, res) => {
 
     const result = await aiService.processPrompt(prompt, options);
 
-    if (result.success) {
-      res.json({
-        success: true,
-        data: result
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        error: result.error,
-        fallbackResponse: result.response
-      });
-    }
+    res.json({
+      success: true,
+      data: result,
+      productionMode: true
+    });
   } catch (error) {
     res.status(500).json({
       success: false,

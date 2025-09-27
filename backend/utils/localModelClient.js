@@ -1,11 +1,9 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { spawn } from 'child_process';
 import https from 'https';
 import { fileURLToPath } from 'url';
-import { localModelClientFallback } from './localModelClient.fallback.js';
 
-// Try to import node-llama-cpp, fallback if it fails
+// Try to import node-llama-cpp, fail fast if not available
 let LlamaModel, LlamaContext, LlamaChatSession, llamaCppAvailable = false;
 
 try {
@@ -16,16 +14,16 @@ try {
   llamaCppAvailable = true;
   console.log('✅ node-llama-cpp loaded successfully');
 } catch (error) {
-  console.warn('⚠️  node-llama-cpp failed to load:', error.message);
-  console.warn('🔄 Will use fallback implementation');
+  console.error('❌ node-llama-cpp failed to load:', error.message);
+  console.error('💡 This system requires native model support. Please ensure node-llama-cpp is properly installed.');
   llamaCppAvailable = false;
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Local GGUF Model Client
- * Uses node-llama-cpp for real GGUF model inference with automatic downloading
+ * Production Local GGUF Model Client
+ * Only works with real model inference - no fallback responses
  */
 class LocalModelClient {
   constructor() {
@@ -33,27 +31,27 @@ class LocalModelClient {
     this.modelPaths = new Map();
     this.isInitialized = false;
     
-    // Recommended models with download URLs
+    // Production model configurations
     this.availableModels = {
       chat: {
         name: 'tinyllama-1.1b-chat',
         fileName: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
         url: 'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
         size: '669MB',
-        description: 'TinyLlama 1.1B - Fast and efficient chat model, loads in ~30 seconds'
+        description: 'TinyLlama 1.1B - Fast and efficient chat model'
       },
       llm: {
         name: 'llama-3.2-3b-instruct',
         fileName: 'Llama-3.2-3B-Instruct-Q4_K_M.gguf',
         url: 'https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf',
         size: '1.9GB',
-        description: 'Meta Llama 3.2 3B - Great for general text generation'
+        description: 'Meta Llama 3.2 3B - Production-grade text generation'
       }
     };
   }
 
   /**
-   * Initialize and detect available local models or download them
+   * Initialize and ensure models are available for production use
    */
   async initialize() {
     try {
@@ -61,63 +59,74 @@ class LocalModelClient {
         return { success: true, message: 'Already initialized' };
       }
 
-      console.log('🔍 Initializing local GGUF model client...');
+      console.log('🚀 Initializing Production GGUF Model Client...');
       
+      // Strict requirement: node-llama-cpp must be available
       if (!llamaCppAvailable) {
-        console.log('⚠️  node-llama-cpp not available, using fallback mode');
-        console.log('📋 Model files will be tracked but inference will use mock responses');
-      } else {
-        console.log('✅ node-llama-cpp v2.8.0 loaded successfully');
+        throw new Error('Production system requires node-llama-cpp. Please install and configure the native dependencies.');
       }
+
+      console.log('✅ Native model support confirmed');
       
-      // Scan for existing models first
+      // Ensure model directories exist
       const chatDir = path.resolve('./models/chat/');
       const llmDir = path.resolve('./models/llm/');
       
       await fs.ensureDir(chatDir);
       await fs.ensureDir(llmDir);
       
+      // Scan for existing models
       const chatModels = await this.scanModelDirectory(chatDir);
       const llmModels = await this.scanModelDirectory(llmDir);
       
       console.log(`📁 Found ${chatModels.length} chat models and ${llmModels.length} LLM models`);
       
-      // Use existing models or download recommended ones
+      // Ensure models are available - download if necessary
       await this.ensureModelAvailable('chat', chatModels, chatDir);
       await this.ensureModelAvailable('llm', llmModels, llmDir);
       
-      // Initialize enhanced fallback client with model information if needed
-      if (!llamaCppAvailable) {
-        console.log('🔧 Initializing enhanced fallback client with model information...');
-        
-        // Set model paths in the enhanced fallback client
-        if (this.modelPaths.get('chat')) {
-          localModelClientFallback.modelPaths.set('chat', this.modelPaths.get('chat'));
-        }
-        if (this.modelPaths.get('llm')) {
-          localModelClientFallback.modelPaths.set('llm', this.modelPaths.get('llm'));
-        }
-        
-        // Mark enhanced fallback as initialized
-        localModelClientFallback.isInitialized = true;
-        console.log('✅ Enhanced fallback client initialized with model information');
-      }
+      // Validate that models can be loaded
+      await this.validateModelIntegrity();
       
       this.isInitialized = true;
+      console.log('🎉 Production model client initialized successfully');
+      
       return {
         success: true,
         chatModel: this.modelPaths.get('chat'),
         llmModel: this.modelPaths.get('llm'),
-        fallbackMode: !llamaCppAvailable
+        productionMode: true,
+        nativeSupport: true
       };
     } catch (error) {
-      console.error('Failed to initialize local models:', error.message);
-      return { success: false, error: error.message };
+      console.error('❌ Failed to initialize production model client:', error.message);
+      this.isInitialized = false;
+      throw error; // Fail fast in production
     }
   }
 
   /**
-   * Ensure a model is available, use existing or download recommended one
+   * Validate model integrity before marking as initialized
+   */
+  async validateModelIntegrity() {
+    console.log('🔍 Validating model integrity...');
+    
+    for (const [modelType, modelInfo] of this.modelPaths.entries()) {
+      if (!modelInfo || !await fs.pathExists(modelInfo.path)) {
+        throw new Error(`Model ${modelType} is not available at path: ${modelInfo?.path || 'unknown'}`);
+      }
+      
+      const stats = await fs.stat(modelInfo.path);
+      if (stats.size < 10 * 1024 * 1024) { // Less than 10MB is likely corrupted
+        throw new Error(`Model ${modelType} appears to be corrupted (size: ${stats.size} bytes)`);
+      }
+      
+      console.log(`✅ Model ${modelType} validated: ${modelInfo.name} (${Math.round(stats.size / (1024 * 1024))}MB)`);
+    }
+  }
+
+  /**
+   * Ensure a model is available for production use
    */
   async ensureModelAvailable(modelType, existingModels, directory) {
     if (existingModels.length > 0) {
@@ -128,8 +137,8 @@ class LocalModelClient {
       return selectedModel;
     }
 
-    // No existing models, download recommended one
-    console.log(`📥 No ${modelType} models found. Downloading recommended model...`);
+    // Download recommended model for production
+    console.log(`📥 Downloading production ${modelType} model...`);
     const modelConfig = this.availableModels[modelType];
     const downloadPath = path.join(directory, modelConfig.fileName);
     
@@ -144,21 +153,21 @@ class LocalModelClient {
       };
       
       this.modelPaths.set(modelType, downloadedModel);
-      console.log(`✅ Downloaded and configured ${modelType} model: ${modelConfig.fileName}`);
+      console.log(`✅ Production ${modelType} model ready: ${modelConfig.fileName}`);
       return downloadedModel;
     } catch (error) {
       console.error(`❌ Failed to download ${modelType} model:`, error.message);
-      throw error;
+      throw new Error(`Production model download failed for ${modelType}: ${error.message}`);
     }
   }
 
   /**
-   * Download a model from URL with progress
+   * Download model with production-grade error handling
    */
   async downloadModel(url, filepath, expectedSize) {
     return new Promise((resolve, reject) => {
-      console.log(`🌐 Downloading model from: ${url}`);
-      console.log(`💾 Saving to: ${filepath}`);
+      console.log(`🌐 Downloading production model: ${url}`);
+      console.log(`💾 Target location: ${filepath}`);
       console.log(`📊 Expected size: ${expectedSize}`);
       
       const file = fs.createWriteStream(filepath);
@@ -166,15 +175,18 @@ class LocalModelClient {
       let lastProgressTime = Date.now();
       
       const request = https.get(url, (response) => {
+        // Handle redirects
         if (response.statusCode === 302 || response.statusCode === 301) {
-          // Handle redirect
+          file.destroy();
           return this.downloadModel(response.headers.location, filepath, expectedSize)
             .then(resolve)
             .catch(reject);
         }
         
         if (response.statusCode !== 200) {
-          reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+          file.destroy();
+          fs.unlink(filepath).catch(() => {});
+          reject(new Error(`Download failed: HTTP ${response.statusCode}: ${response.statusMessage}`));
           return;
         }
         
@@ -184,7 +196,7 @@ class LocalModelClient {
           downloadedBytes += chunk.length;
           file.write(chunk);
           
-          // Progress update every 5 seconds
+          // Progress reporting every 5 seconds
           const now = Date.now();
           if (now - lastProgressTime > 5000) {
             const percentComplete = totalSize > 0 ? (downloadedBytes / totalSize * 100).toFixed(1) : 'unknown';
@@ -203,52 +215,52 @@ class LocalModelClient {
         
         response.on('error', (err) => {
           file.destroy();
-          fs.unlink(filepath).catch(() => {}); // Clean up partial file
-          reject(err);
+          fs.unlink(filepath).catch(() => {});
+          reject(new Error(`Download error: ${err.message}`));
         });
       });
       
       request.on('error', (err) => {
         file.destroy();
-        fs.unlink(filepath).catch(() => {}); // Clean up partial file
-        reject(err);
+        fs.unlink(filepath).catch(() => {});
+        reject(new Error(`Request error: ${err.message}`));
       });
       
-      request.setTimeout(300000, () => { // 5 minute timeout
+      // Production timeout: 10 minutes for large models
+      request.setTimeout(600000, () => {
         request.destroy();
-        reject(new Error('Download timeout'));
+        file.destroy();
+        fs.unlink(filepath).catch(() => {});
+        reject(new Error('Download timeout - production models require stable connection'));
       });
     });
   }
 
   /**
-   * Scan directory for model files (including GGUF and other formats)
+   * Scan directory for production model files
    */
   async scanModelDirectory(directory) {
     try {
       if (!(await fs.pathExists(directory))) {
-        console.log(`📂 Directory does not exist: ${directory}`);
+        console.log(`📂 Creating model directory: ${directory}`);
+        await fs.ensureDir(directory);
         return [];
       }
 
       const files = await fs.readdir(directory);
-      console.log(`📋 Files in ${directory}:`, files);
+      console.log(`📋 Scanning ${directory}:`, files.length, 'files');
       
-      // Look for various model file types and naming patterns
+      // Filter for valid model files
       const modelFiles = files.filter(file => {
-        // Remove README files
         if (file.toLowerCase().includes('readme')) return false;
         
-        // Look for common model file patterns
         return (
-          file.endsWith('.gguf') ||           // Standard GGUF format
-          file.includes('llama') ||           // Llama models
-          file.includes('phi3') ||            // Phi-3 models  
-          file.includes('qwen') ||            // Qwen models
-          file.includes('mistral') ||         // Mistral models
-          file.includes('tinyllama') ||       // TinyLlama models
-          file.includes(':') ||               // Ollama-style names like "phi3:mini"
-          (file.length > 100000000)          // Large files (likely models)
+          file.endsWith('.gguf') ||
+          file.includes('llama') ||
+          file.includes('phi3') ||
+          file.includes('qwen') ||
+          file.includes('mistral') ||
+          file.includes('tinyllama')
         );
       });
 
@@ -258,8 +270,8 @@ class LocalModelClient {
           const filePath = path.join(directory, file);
           const stats = await fs.stat(filePath);
           
-          // Only include files larger than 10MB (likely model files)
-          if (stats.size > 10 * 1024 * 1024) {
+          // Production requirement: models must be substantial
+          if (stats.size > 50 * 1024 * 1024) { // Minimum 50MB
             modelInfos.push({
               name: file,
               path: filePath,
@@ -267,11 +279,11 @@ class LocalModelClient {
             });
           }
         } catch (error) {
-          console.warn(`Could not stat file ${file}:`, error.message);
+          console.warn(`⚠️  Could not validate file ${file}:`, error.message);
         }
       }
 
-      console.log(`✅ Found ${modelInfos.length} potential model files in ${directory}`);
+      console.log(`✅ Found ${modelInfos.length} production-ready models in ${directory}`);
       modelInfos.forEach(model => {
         const sizeMB = Math.round(model.size / (1024 * 1024));
         console.log(`  📄 ${model.name} (${sizeMB}MB)`);
@@ -279,15 +291,19 @@ class LocalModelClient {
 
       return modelInfos;
     } catch (error) {
-      console.warn(`Failed to scan directory ${directory}:`, error.message);
-      return [];
+      console.error(`❌ Failed to scan directory ${directory}:`, error.message);
+      throw error;
     }
   }
 
   /**
-   * Check if a model is available locally
+   * Check if a model is available for production use
    */
   async isModelAvailable(modelType) {
+    if (!this.isInitialized) {
+      return false;
+    }
+    
     const modelInfo = this.modelPaths.get(modelType);
     if (!modelInfo) return false;
     
@@ -295,36 +311,41 @@ class LocalModelClient {
   }
 
   /**
-   * Generate response using local GGUF model with real inference
+   * Generate response using production model inference
    */
   async generate(modelType, prompt, options = {}) {
     try {
+      // Strict production validation
+      if (!this.isInitialized) {
+        throw new Error('Model client not initialized. Call initialize() first.');
+      }
+
+      if (!llamaCppAvailable) {
+        throw new Error('Production system requires native model support. Please ensure node-llama-cpp is properly installed.');
+      }
+
       const modelInfo = this.modelPaths.get(modelType);
       if (!modelInfo) {
-        throw new Error(`No ${modelType} model available`);
+        throw new Error(`Production model '${modelType}' is not available`);
       }
 
-      // Check if node-llama-cpp is available
-      if (!llamaCppAvailable) {
-        console.log(`🤖 [ENHANCED FALLBACK] Using intelligent response system for: ${modelInfo.name}`);
-        
-        // Use the enhanced fallback client for intelligent responses
-        return await localModelClientFallback.generate(modelType, prompt, options);
-      }
-
-      console.log(`🤖 Generating with local model: ${modelInfo.name}`);
+      console.log(`🤖 [PRODUCTION] Generating with model: ${modelInfo.name}`);
       
       // Load model if not already loaded
       if (!this.loadedModels.has(modelType)) {
-        console.log(`📥 Loading model: ${modelInfo.path}`);
+        console.log(`📥 Loading production model: ${modelInfo.path}`);
+        
         const model = new LlamaModel({
           modelPath: modelInfo.path,
-          gpuLayers: 0 // Use CPU only for broader compatibility
+          gpuLayers: options.gpuLayers || 0, // CPU-first for stability
+          batchSize: options.batchSize || 512,
+          threads: options.threads || -1 // Auto-detect
         });
         
         const context = new LlamaContext({
           model: model,
-          contextSize: options.contextSize || 4096
+          contextSize: options.contextSize || 4096,
+          batchSize: options.batchSize || 512
         });
         
         const session = new LlamaChatSession({
@@ -332,93 +353,77 @@ class LocalModelClient {
         });
         
         this.loadedModels.set(modelType, { model, context, session });
-        console.log(`✅ Model loaded successfully: ${modelInfo.name}`);
+        console.log(`✅ Production model loaded: ${modelInfo.name}`);
       }
       
       const { session } = this.loadedModels.get(modelType);
       
-      // Generate response
-      console.log(`💭 Generating response for: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+      // Production inference
+      console.log(`💭 [PRODUCTION] Processing: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
       
+      const startTime = Date.now();
       const response = await session.prompt(prompt, {
         maxTokens: options.maxTokens || 512,
         temperature: options.temperature || 0.7,
         topP: options.topP || 0.9,
-        topK: options.topK || 40
+        topK: options.topK || 40,
+        repeatPenalty: options.repeatPenalty || 1.1
       });
       
-      console.log(`✅ Generated response (${response.length} chars)`);
+      const duration = Date.now() - startTime;
+      const tokensPerSecond = response.length / (duration / 1000);
+      
+      console.log(`✅ [PRODUCTION] Response generated: ${response.length} chars in ${duration}ms (${tokensPerSecond.toFixed(1)} chars/sec)`);
+      
       return response;
       
     } catch (error) {
-      console.error(`Local model generation failed:`, error.message);
-      throw error;
+      console.error(`❌ [PRODUCTION] Model generation failed:`, error.message);
+      throw new Error(`Production model inference failed: ${error.message}`);
     }
   }
 
   /**
-   * Chat method for conversational models with message history
+   * Production chat interface
    */
   async chat(modelType, messages, options = {}) {
     try {
-      // Convert messages to a single prompt for now
-      // In future versions, we can implement proper conversation handling
+      // Convert messages to prompt format for production
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage && lastMessage.role === 'user') {
-        return this.generate(modelType, lastMessage.content, options);
+      if (!lastMessage || lastMessage.role !== 'user') {
+        throw new Error('Invalid message format: expected user message');
       }
-      throw new Error('No user message found in conversation');
+      
+      return await this.generate(modelType, lastMessage.content, options);
     } catch (error) {
-      console.error(`Chat generation failed:`, error.message);
+      console.error(`❌ [PRODUCTION] Chat generation failed:`, error.message);
       throw error;
     }
   }
 
   /**
-   * Stream generation with real inference
+   * Production streaming generation
    */
   async* generateStream(modelType, prompt, options = {}) {
     try {
+      if (!this.isInitialized || !llamaCppAvailable) {
+        throw new Error('Production streaming requires initialized native model support');
+      }
+
       const modelInfo = this.modelPaths.get(modelType);
       if (!modelInfo) {
-        throw new Error(`No ${modelType} model available`);
+        throw new Error(`Production model '${modelType}' is not available for streaming`);
       }
 
-      // Check if node-llama-cpp is available
-      if (!llamaCppAvailable) {
-        console.log(`🤖 [FALLBACK] Mock streaming for model: ${modelType}`);
-        
-        const response = await this.generate(modelType, prompt, options);
-        const words = response.split(' ');
-        
-        // Simulate streaming by yielding words
-        for (let i = 0; i < words.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          yield {
-            type: 'content',
-            content: words[i] + (i < words.length - 1 ? ' ' : ''),
-            done: false
-          };
-        }
-        
-        yield {
-          type: 'content',
-          content: response,
-          done: true
-        };
-        
-        return;
-      }
-
-      console.log(`🤖 Streaming with local model: ${modelInfo.name}`);
+      console.log(`🤖 [PRODUCTION] Streaming with model: ${modelInfo.name}`);
       
       // Load model if not already loaded
       if (!this.loadedModels.has(modelType)) {
-        console.log(`📥 Loading model for streaming: ${modelInfo.path}`);
+        console.log(`📥 Loading model for production streaming: ${modelInfo.path}`);
+        
         const model = new LlamaModel({
           modelPath: modelInfo.path,
-          gpuLayers: 0
+          gpuLayers: options.gpuLayers || 0
         });
         
         const context = new LlamaContext({
@@ -431,12 +436,12 @@ class LocalModelClient {
         });
         
         this.loadedModels.set(modelType, { model, context, session });
-        console.log(`✅ Model loaded for streaming: ${modelInfo.name}`);
+        console.log(`✅ Production streaming model loaded: ${modelInfo.name}`);
       }
       
       const { session } = this.loadedModels.get(modelType);
       
-      // Stream response
+      // Production streaming
       let fullResponse = '';
       for await (const chunk of session.promptWithMeta(prompt, {
         maxTokens: options.maxTokens || 512,
@@ -451,52 +456,67 @@ class LocalModelClient {
         yield {
           type: 'content',
           content: chunk,
-          done: false
+          done: false,
+          model: modelInfo.name
         };
       }
       
       yield {
-        type: 'content',
+        type: 'complete',
         content: fullResponse,
-        done: true
+        done: true,
+        model: modelInfo.name
       };
       
     } catch (error) {
+      console.error(`❌ [PRODUCTION] Streaming failed:`, error.message);
       yield {
         type: 'error',
-        content: error.message
+        content: `Production streaming error: ${error.message}`,
+        error: true
       };
     }
   }
 
   /**
-   * Cleanup loaded models to free memory
+   * Production cleanup - free memory resources
    */
   async cleanup() {
+    console.log('🧹 [PRODUCTION] Cleaning up model resources...');
+    
     for (const [modelType, { context }] of this.loadedModels.entries()) {
       try {
         await context.dispose();
-        console.log(`🧹 Cleaned up model: ${modelType}`);
+        console.log(`✅ Cleaned up production model: ${modelType}`);
       } catch (error) {
-        console.warn(`Failed to cleanup model ${modelType}:`, error.message);
+        console.warn(`⚠️  Failed to cleanup model ${modelType}:`, error.message);
       }
     }
+    
     this.loadedModels.clear();
+    console.log('✅ Production cleanup completed');
   }
 
   /**
-   * List local models
+   * List available production models
    */
   async listModels() {
+    if (!this.isInitialized) {
+      throw new Error('Model client not initialized');
+    }
+    
     const models = [];
     
     for (const [type, modelInfo] of this.modelPaths.entries()) {
-      if (modelInfo) {
+      if (modelInfo && await fs.pathExists(modelInfo.path)) {
+        const stats = await fs.stat(modelInfo.path);
         models.push({
           name: modelInfo.name,
           type: type,
-          size: modelInfo.size || 0,
-          path: modelInfo.path
+          size: stats.size,
+          path: modelInfo.path,
+          status: 'ready',
+          production: true
         });
       }
     }
@@ -505,14 +525,33 @@ class LocalModelClient {
   }
 
   /**
-   * Check if local models are available
+   * Check production model availability
    */
   async isAvailable() {
+    if (!this.isInitialized || !llamaCppAvailable) {
+      return false;
+    }
+    
     const chatAvailable = await this.isModelAvailable('chat');
     const llmAvailable = await this.isModelAvailable('llm');
+    
     return chatAvailable || llmAvailable;
+  }
+
+  /**
+   * Get production system status
+   */
+  getStatus() {
+    return {
+      initialized: this.isInitialized,
+      nativeSupport: llamaCppAvailable,
+      loadedModels: Array.from(this.loadedModels.keys()),
+      availableModels: Array.from(this.modelPaths.keys()),
+      productionMode: true,
+      fallbackMode: false
+    };
   }
 }
 
-// Export singleton instance
+// Export production singleton instance
 export const localModelClient = new LocalModelClient();

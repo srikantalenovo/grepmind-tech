@@ -1,55 +1,86 @@
-import { modelLoader } from '../utils/modelLoader.js';
-import { AI_CONFIG, RESPONSE_TEMPLATES } from '../config/aiConfig.js';
+import { localModelClient } from '../utils/localModelClient.js';
+import { AI_CONFIG } from '../config/aiConfig.js';
 
+/**
+ * Production LLM Service
+ * Only works with real model inference - strict production requirements
+ */
 class LLMService {
   constructor() {
     this.requestQueue = [];
     this.activeRequests = new Set();
-    this.requestHistory = new Map(); // Store recent requests for context
+    this.requestHistory = new Map(); // Store recent requests for analytics
     this.isProcessingQueue = false;
+    this.initialized = false;
+    this.totalRequests = 0;
+    this.successfulRequests = 0;
+    this.averageResponseTime = 0;
   }
 
   /**
-   * Initialize LLM service
+   * Initialize production LLM service
    */
   async initialize() {
     try {
-      console.log('Initializing LLM Service...');
+      console.log('🚀 Initializing Production LLM Service...');
       
-      // Ensure LLM model is loaded
-      if (!modelLoader.isModelReady('llm')) {
-        console.log('Loading LLM model...');
-        await modelLoader.loadModel('llm');
+      // Strict requirement: local model client must be initialized
+      if (!localModelClient.isInitialized) {
+        console.log('📥 Initializing local model client first...');
+        await localModelClient.initialize();
       }
       
-      console.log('LLM Service initialized successfully');
-      return { success: true };
+      // Verify LLM model is available
+      const isAvailable = await localModelClient.isModelAvailable('llm');
+      if (!isAvailable) {
+        throw new Error('Production LLM service requires LLM model to be available');
+      }
+      
+      this.initialized = true;
+      console.log('✅ Production LLM Service initialized successfully');
+      
+      return { 
+        success: true, 
+        productionMode: true,
+        modelSupport: 'native'
+      };
     } catch (error) {
-      console.error('Failed to initialize LLM Service:', error);
-      throw error;
+      console.error('❌ Failed to initialize Production LLM Service:', error.message);
+      this.initialized = false;
+      throw new Error(`Production LLM service initialization failed: ${error.message}`);
     }
   }
 
   /**
-   * Generate response for main prompt
+   * Generate production LLM response
    */
   async generateResponse(prompt, options = {}) {
+    const startTime = Date.now();
+    this.totalRequests++;
+    
     try {
-      // Validate input
+      // Strict production validation
+      if (!this.initialized) {
+        throw new Error('LLM service not initialized. Production mode requires proper initialization.');
+      }
+
       if (!prompt || prompt.trim().length === 0) {
         throw new Error('Prompt cannot be empty');
       }
 
-      if (prompt.length > AI_CONFIG.safety.maxInputLength) {
-        throw new Error(`Prompt too long. Maximum length is ${AI_CONFIG.safety.maxInputLength} characters.`);
+      // Production input validation
+      const maxInputLength = AI_CONFIG.safety?.maxInputLength || 8000;
+      if (prompt.length > maxInputLength) {
+        throw new Error(`Prompt too long. Maximum length is ${maxInputLength} characters.`);
       }
 
-      // Check concurrent request limits
-      if (this.activeRequests.size >= AI_CONFIG.performance.maxConcurrentRequests) {
-        if (AI_CONFIG.performance.requestQueue) {
-          return await this.queueRequest(prompt, options);
+      // Production concurrency control
+      const maxConcurrent = AI_CONFIG.performance?.maxConcurrentRequests || 3;
+      if (this.activeRequests.size >= maxConcurrent) {
+        if (AI_CONFIG.performance?.requestQueue) {
+          return await this.queueRequest(prompt, options, startTime);
         } else {
-          throw new Error('Too many concurrent requests. Please try again later.');
+          throw new Error('Production system at capacity. Please try again later.');
         }
       }
 
@@ -57,19 +88,27 @@ class LLMService {
       this.activeRequests.add(requestId);
 
       try {
-        // Process the prompt
-        const response = await this.processPrompt(prompt, options);
+        // Process with production model
+        const response = await this.processPromptWithModel(prompt, options);
+        const processingTime = Date.now() - startTime;
 
-        // Store in request history
-        this.addToHistory(prompt, response);
+        // Update metrics
+        this.successfulRequests++;
+        this.updateAverageResponseTime(processingTime);
+
+        // Store in request history for analytics
+        this.addToHistory(prompt, response, processingTime);
+
+        console.log(`✅ [PRODUCTION LLM] Response generated in ${processingTime}ms`);
 
         return {
           success: true,
           response,
           requestId,
           timestamp: new Date().toISOString(),
-          tokensUsed: this.estimateTokens(prompt + response),
-          processingTime: Date.now() - options.startTime || 0
+          processingTime,
+          tokensEstimate: this.estimateTokens(prompt + response),
+          productionMode: true
         };
 
       } finally {
@@ -78,247 +117,151 @@ class LLMService {
       }
 
     } catch (error) {
-      console.error('Error generating LLM response:', error);
-      return {
-        success: false,
-        error: error.message,
-        response: RESPONSE_TEMPLATES.llm.error
-      };
+      const processingTime = Date.now() - startTime;
+      console.error('❌ [PRODUCTION LLM] Error generating response:', error.message);
+      
+      // In production, we fail fast rather than providing fallback responses
+      throw new Error(`Production LLM error: ${error.message}`);
     }
   }
 
   /**
-   * Process prompt with AI model
+   * Process prompt with production model
    */
-  async processPrompt(prompt, options) {
+  async processPromptWithModel(prompt, options) {
     try {
-      // Get the loaded LLM model
-      const model = modelLoader.getModel('llm');
+      // Prepare production prompt
+      const enrichedPrompt = this.enrichPromptForProduction(prompt, options);
       
-      // Prepare prompt with context
-      const enrichedPrompt = this.enrichPrompt(prompt, options);
+      console.log(`🤖 [PRODUCTION LLM] Processing with local model...`);
+      console.log(`📝 [PRODUCTION LLM] Prompt length: ${enrichedPrompt.length} characters`);
       
-      // Generate response using Ollama
-      console.log(`🔥 Processing prompt with ${model.name}...`);
-      const response = await model.generate(enrichedPrompt, {
-        maxTokens: options.maxTokens || AI_CONFIG.models.llm.maxTokens,
-        temperature: options.temperature || AI_CONFIG.models.llm.temperature,
-        stopSequences: options.stopSequences || [],
+      // Use production generation
+      const response = await localModelClient.generate('llm', enrichedPrompt, {
+        maxTokens: options.maxTokens || AI_CONFIG.models?.llm?.maxTokens || 1024,
+        temperature: options.temperature || AI_CONFIG.models?.llm?.temperature || 0.7,
         topP: options.topP || 0.9,
-        topK: options.topK || 40
+        topK: options.topK || 40,
+        contextSize: options.contextSize || 4096
       });
 
-      // Post-process response
-      return this.postProcessResponse(response, options);
-
-    } catch (error) {
-      console.error('Error processing prompt with LLM model:', error.message);
-      
-      // Return more specific error information
-      if (error.message.includes('not loaded')) {
-        return this.getFallbackResponse(prompt, 'Model not loaded. Please check Ollama setup.');
-      } else if (error.message.includes('Ollama')) {
-        return this.getFallbackResponse(prompt, 'Ollama connection issue. Please check if Ollama is running.');
-      } else {
-        return this.getFallbackResponse(prompt, error.message);
+      if (!response || response.trim().length === 0) {
+        throw new Error('Empty response from production LLM model');
       }
+
+      return response.trim();
+    } catch (error) {
+      console.error('❌ [PRODUCTION LLM] Model processing failed:', error.message);
+      throw new Error(`Production LLM generation failed: ${error.message}`);
     }
   }
 
   /**
-   * Enrich prompt with context and instructions
+   * Enrich prompt for production use
    */
-  enrichPrompt(prompt, options) {
-    let enrichedPrompt = '';
+  enrichPromptForProduction(prompt, options) {
+    let enrichedPrompt = prompt;
 
-    // Add system instruction
-    if (options.systemInstruction) {
-      enrichedPrompt += `System: ${options.systemInstruction}\n\n`;
+    // Add production context if specified
+    if (options.context) {
+      enrichedPrompt = `Context: ${options.context}\n\nQuery: ${prompt}`;
     }
 
-    // Add context from recent requests if available
-    if (options.includeContext && this.requestHistory.size > 0) {
-      enrichedPrompt += this.buildContextFromHistory();
+    // Add formatting instructions for production
+    if (options.format === 'structured') {
+      enrichedPrompt += '\n\nPlease provide a well-structured, professional response with clear sections and bullet points where appropriate.';
     }
 
-    // Add the main prompt
-    enrichedPrompt += `User: ${prompt}\n\nAssistant: `;
+    // Add task-specific instructions
+    if (options.task) {
+      const taskInstructions = {
+        'code': '\n\nProvide clean, production-ready code with proper error handling and documentation.',
+        'analysis': '\n\nProvide a comprehensive analysis with clear conclusions and actionable insights.',
+        'explanation': '\n\nProvide a clear, step-by-step explanation that is easy to understand.',
+        'summary': '\n\nProvide a concise summary highlighting the key points.'
+      };
+      
+      if (taskInstructions[options.task]) {
+        enrichedPrompt += taskInstructions[options.task];
+      }
+    }
 
     return enrichedPrompt;
   }
 
   /**
-   * Build context from request history
+   * Stream LLM response for production
    */
-  buildContextFromHistory() {
-    const recentRequests = Array.from(this.requestHistory.entries())
-      .slice(-3) // Last 3 requests for context
-      .map(([prompt, response]) => `Previous Q: ${prompt.slice(0, 100)}...\nPrevious A: ${response.slice(0, 200)}...`)
-      .join('\n\n');
-
-    return recentRequests ? `Recent context:\n${recentRequests}\n\nCurrent request:\n` : '';
-  }
-
-  /**
-   * Post-process the generated response
-   */
-  postProcessResponse(response, options) {
-    // Remove any unwanted prefixes or suffixes
-    let cleanResponse = response.trim();
-
-    // Remove common AI response prefixes
-    const prefixesToRemove = [
-      'Assistant: ',
-      'AI: ',
-      'Response: ',
-      'Answer: '
-    ];
-
-    prefixesToRemove.forEach(prefix => {
-      if (cleanResponse.startsWith(prefix)) {
-        cleanResponse = cleanResponse.substring(prefix.length).trim();
-      }
-    });
-
-    // Apply content filtering if enabled
-    if (AI_CONFIG.safety.enableContentFilter) {
-      cleanResponse = this.applyContentFilter(cleanResponse);
-    }
-
-    // Format response if requested
-    if (options.formatResponse) {
-      cleanResponse = this.formatResponse(cleanResponse, options.format);
-    }
-
-    return cleanResponse;
-  }
-
-  /**
-   * Apply basic content filtering
-   */
-  applyContentFilter(text) {
-    // Basic content filtering - in production, use more sophisticated filtering
-    const blockedWords = AI_CONFIG.safety.blockedWords || [];
-    
-    let filteredText = text;
-    blockedWords.forEach(word => {
-      const regex = new RegExp(`\\b${word}\\b`, 'gi');
-      filteredText = filteredText.replace(regex, '[FILTERED]');
-    });
-
-    return filteredText;
-  }
-
-  /**
-   * Format response based on requested format
-   */
-  formatResponse(response, format) {
-    switch (format) {
-      case 'markdown':
-        return this.formatAsMarkdown(response);
-      case 'json':
-        return this.formatAsJSON(response);
-      case 'html':
-        return this.formatAsHTML(response);
-      default:
-        return response;
-    }
-  }
-
-  /**
-   * Format response as markdown
-   */
-  formatAsMarkdown(response) {
-    // Add basic markdown formatting
-    return response
-      .replace(/^(\d+\.\s)/gm, '\n$1') // Number lists
-      .replace(/^(-\s)/gm, '\n$1')    // Bullet lists
-      .replace(/\*\*(.*?)\*\*/g, '**$1**') // Bold
-      .replace(/\*(.*?)\*/g, '*$1*');     // Italic
-  }
-
-  /**
-   * Format response as JSON
-   */
-  formatAsJSON(response) {
+  async* streamResponse(prompt, options = {}) {
     try {
-      return JSON.stringify({ response }, null, 2);
+      if (!this.initialized) {
+        throw new Error('LLM service not initialized for streaming');
+      }
+
+      const enrichedPrompt = this.enrichPromptForProduction(prompt, options);
+      
+      console.log(`🤖 [PRODUCTION LLM STREAM] Starting stream with local model...`);
+      
+      let fullResponse = '';
+      
+      // Stream from production model
+      for await (const chunk of localModelClient.generateStream('llm', enrichedPrompt, options)) {
+        if (chunk.type === 'content' && !chunk.done) {
+          fullResponse += chunk.content;
+          yield {
+            type: 'content',
+            content: chunk.content,
+            done: false
+          };
+        } else if (chunk.type === 'complete' || chunk.done) {
+          yield {
+            type: 'complete',
+            content: fullResponse,
+            done: true
+          };
+          break;
+        } else if (chunk.type === 'error') {
+          throw new Error(chunk.content);
+        }
+      }
+      
     } catch (error) {
-      return JSON.stringify({ response, error: 'Failed to format as JSON' }, null, 2);
+      console.error('❌ [PRODUCTION LLM STREAM] Streaming failed:', error.message);
+      yield {
+        type: 'error',
+        content: `Production LLM streaming error: ${error.message}`,
+        error: true
+      };
     }
   }
 
   /**
-   * Format response as HTML
+   * Queue request for production processing
    */
-  formatAsHTML(response) {
-    return response
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>')
-      .replace(/^/, '<p>')
-      .replace(/$/, '</p>');
-  }
-
-  /**
-   * Get fallback response when AI model fails
-   */
-  getFallbackResponse(prompt, errorDetails = null) {
-    const shortPrompt = prompt.slice(0, 50) + (prompt.length > 50 ? '...' : '');
-    
-    let errorMessage = '';
-    if (errorDetails) {
-      errorMessage = `\n\n**Error Details:** ${errorDetails}`;
-    }
-
-    // Provide helpful troubleshooting information
-    return `I apologize, but I encountered an issue processing your request: "${shortPrompt}"${errorMessage}
-
-**Troubleshooting Steps:**
-
-1. **Check Ollama Status:**
-   - Ensure Ollama is running: \`ollama serve\`
-   - Verify available models: \`ollama list\`
-
-2. **Install Required Models:**
-   - For chat: \`ollama pull phi3:mini\`
-   - For LLM: \`ollama pull llama3.2:3b\`
-
-3. **Alternative Models:**
-   - Try: \`ollama pull qwen2:1.5b\` (lightweight)
-   - Try: \`ollama pull mistral:7b\` (more capable)
-
-4. **Check Connection:**
-   - Ollama should be running on http://localhost:11434
-   - Test with: \`curl http://localhost:11434/api/tags\`
-
-Once Ollama is properly set up with the required models, please try your request again. I'll be able to provide detailed, contextual responses to your questions.
-
-Would you like help with any of these setup steps?`;
-  }
-
-  /**
-   * Queue request when at capacity
-   */
-  async queueRequest(prompt, options) {
+  async queueRequest(prompt, options, startTime) {
     return new Promise((resolve, reject) => {
       const queueItem = {
         prompt,
-        options: { ...options, startTime: Date.now() },
+        options,
+        startTime,
         resolve,
         reject,
-        timestamp: Date.now()
+        queuedAt: Date.now()
       };
 
       this.requestQueue.push(queueItem);
-      
+      console.log(`🔄 [PRODUCTION LLM] Request queued. Queue length: ${this.requestQueue.length}`);
+
       // Set timeout for queued requests
       setTimeout(() => {
         const index = this.requestQueue.indexOf(queueItem);
         if (index > -1) {
           this.requestQueue.splice(index, 1);
-          reject(new Error('Request timeout while in queue'));
+          reject(new Error('Request timeout in queue'));
         }
-      }, AI_CONFIG.api.timeout);
+      }, 30000); // 30 second timeout
+
+      this.processNextInQueue();
     });
   }
 
@@ -326,11 +269,12 @@ Would you like help with any of these setup steps?`;
    * Process next request in queue
    */
   async processNextInQueue() {
-    if (this.requestQueue.length === 0 || this.isProcessingQueue) {
+    if (this.isProcessingQueue || this.requestQueue.length === 0) {
       return;
     }
 
-    if (this.activeRequests.size >= AI_CONFIG.performance.maxConcurrentRequests) {
+    const maxConcurrent = AI_CONFIG.performance?.maxConcurrentRequests || 3;
+    if (this.activeRequests.size >= maxConcurrent) {
       return;
     }
 
@@ -338,58 +282,16 @@ Would you like help with any of these setup steps?`;
     const queueItem = this.requestQueue.shift();
 
     try {
-      const response = await this.generateResponse(queueItem.prompt, queueItem.options);
-      queueItem.resolve(response);
+      const result = await this.generateResponse(queueItem.prompt, queueItem.options);
+      queueItem.resolve(result);
     } catch (error) {
       queueItem.reject(error);
     } finally {
       this.isProcessingQueue = false;
-    }
-  }
-
-  /**
-   * Stream response for real-time updates
-   */
-  async* streamResponse(prompt, options = {}) {
-    try {
-      yield { type: 'status', content: 'Connecting to AI model...' };
-      
-      // Get the loaded LLM model
-      const model = modelLoader.getModel('llm');
-      
-      // Prepare prompt with context
-      const enrichedPrompt = this.enrichPrompt(prompt, options);
-      
-      yield { type: 'status', content: `Generating response with ${model.name}...` };
-      
-      // Use the model's streaming capability
-      yield* model.stream(enrichedPrompt, {
-        maxTokens: options.maxTokens || AI_CONFIG.models.llm.maxTokens,
-        temperature: options.temperature || AI_CONFIG.models.llm.temperature,
-        stopSequences: options.stopSequences || [],
-        topP: options.topP || 0.9,
-        topK: options.topK || 40
-      });
-      
-    } catch (error) {
-      console.error('Error streaming LLM response:', error.message);
-      yield { 
-        type: 'error', 
-        content: `Streaming failed: ${error.message}. Please check if Ollama is running and models are available.`
-      };
-    }
-  }
-
-  /**
-   * Add to request history
-   */
-  addToHistory(prompt, response) {
-    this.requestHistory.set(prompt, response);
-    
-    // Keep only last 10 requests
-    if (this.requestHistory.size > 10) {
-      const firstKey = this.requestHistory.keys().next().value;
-      this.requestHistory.delete(firstKey);
+      // Try to process next item
+      if (this.requestQueue.length > 0) {
+        setImmediate(() => this.processNextInQueue());
+      }
     }
   }
 
@@ -401,38 +303,128 @@ Would you like help with any of these setup steps?`;
   }
 
   /**
-   * Estimate token count (rough approximation)
+   * Add to request history for analytics
    */
-  estimateTokens(text) {
-    // Rough estimate: ~1.3 tokens per word
-    return Math.ceil(text.split(/\s+/).length * 1.3);
+  addToHistory(prompt, response, processingTime) {
+    const historyItem = {
+      prompt: prompt.slice(0, 200), // Store first 200 chars for analytics
+      responseLength: response.length,
+      processingTime,
+      timestamp: new Date().toISOString()
+    };
+
+    // Keep last 100 requests for analytics
+    const maxHistorySize = 100;
+    if (this.requestHistory.size >= maxHistorySize) {
+      const oldestKey = this.requestHistory.keys().next().value;
+      this.requestHistory.delete(oldestKey);
+    }
+
+    this.requestHistory.set(Date.now().toString(), historyItem);
   }
 
   /**
-   * Get service status
+   * Update average response time
+   */
+  updateAverageResponseTime(newTime) {
+    if (this.successfulRequests === 1) {
+      this.averageResponseTime = newTime;
+    } else {
+      this.averageResponseTime = ((this.averageResponseTime * (this.successfulRequests - 1)) + newTime) / this.successfulRequests;
+    }
+  }
+
+  /**
+   * Estimate tokens (rough approximation)
+   */
+  estimateTokens(text) {
+    // Rough estimation: ~4 characters per token on average
+    return Math.ceil(text.length / 4);
+  }
+
+  /**
+   * Get production service status
    */
   getStatus() {
     return {
-      initialized: modelLoader.isModelReady('llm'),
+      initialized: this.initialized,
       activeRequests: this.activeRequests.size,
-      queuedRequests: this.requestQueue.length,
-      requestHistory: this.requestHistory.size,
-      modelStatus: modelLoader.getModelStatus('llm'),
-      performance: {
-        maxConcurrentRequests: AI_CONFIG.performance.maxConcurrentRequests,
-        requestQueue: AI_CONFIG.performance.requestQueue
-      }
+      queueLength: this.requestQueue.length,
+      totalRequests: this.totalRequests,
+      successfulRequests: this.successfulRequests,
+      successRate: this.totalRequests > 0 ? ((this.successfulRequests / this.totalRequests) * 100).toFixed(2) + '%' : '0%',
+      averageResponseTime: Math.round(this.averageResponseTime),
+      productionMode: true,
+      modelRequired: true
     };
   }
 
   /**
-   * Clear request history
+   * Get analytics data
    */
-  clearHistory() {
-    this.requestHistory.clear();
-    return { success: true, message: 'Request history cleared' };
+  getAnalytics() {
+    const history = Array.from(this.requestHistory.values());
+    
+    return {
+      totalRequests: this.totalRequests,
+      successfulRequests: this.successfulRequests,
+      averageResponseTime: Math.round(this.averageResponseTime),
+      recentRequests: history.slice(-20), // Last 20 requests
+      responseTimes: history.map(h => h.processingTime),
+      requestVolume: this.getRequestVolumeByHour()
+    };
+  }
+
+  /**
+   * Get request volume by hour (last 24 hours)
+   */
+  getRequestVolumeByHour() {
+    const now = new Date();
+    const hours = [];
+    
+    for (let i = 23; i >= 0; i--) {
+      const hour = new Date(now.getTime() - (i * 60 * 60 * 1000));
+      const hourStart = hour.getTime();
+      const hourEnd = hourStart + (60 * 60 * 1000);
+      
+      const requestsInHour = Array.from(this.requestHistory.values())
+        .filter(req => {
+          const reqTime = new Date(req.timestamp).getTime();
+          return reqTime >= hourStart && reqTime < hourEnd;
+        }).length;
+      
+      hours.push({
+        hour: hour.getHours(),
+        requests: requestsInHour
+      });
+    }
+    
+    return hours;
+  }
+
+  /**
+   * Production cleanup
+   */
+  async cleanup() {
+    console.log('🧹 [PRODUCTION LLM] Cleaning up LLM service...');
+    
+    // Clear old request history (keep only last 24 hours)
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    
+    for (const [key, request] of this.requestHistory.entries()) {
+      const requestTime = new Date(request.timestamp).getTime();
+      if (requestTime < oneDayAgo) {
+        this.requestHistory.delete(key);
+      }
+    }
+    
+    // Clear any stuck queue items (older than 1 hour)
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    this.requestQueue = this.requestQueue.filter(item => item.queuedAt > oneHourAgo);
+    
+    console.log('✅ [PRODUCTION LLM] Cleanup completed');
   }
 }
 
-// Export singleton instance
+// Export production singleton instance
 export const llmService = new LLMService();
