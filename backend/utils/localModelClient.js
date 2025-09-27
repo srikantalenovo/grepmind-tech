@@ -49,8 +49,8 @@ class LocalModelClient {
       console.log('✅ node-llama-cpp v2.8.0 loaded successfully');
       
       // Scan for existing models first
-      const chatDir = path.resolve('./models/chat/');
-      const llmDir = path.resolve('./models/llm/');
+      const chatDir = path.resolve('../models/chat/');
+      const llmDir = path.resolve('../models/llm/');
       
       await fs.ensureDir(chatDir);
       await fs.ensureDir(llmDir);
