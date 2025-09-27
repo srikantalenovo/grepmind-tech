@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { LlamaCpp } from "@langchain/community/llms/llama_cpp";
 
 // Try to import LangChain components with graceful fallback
-let ChatLlamaCpp, LlamaCpp, langchainAvailable = false;
+let ChatLlamaCpp, langchainAvailable = false;
 
 try {
   // Try to import LangChain LlamaCpp integrations
