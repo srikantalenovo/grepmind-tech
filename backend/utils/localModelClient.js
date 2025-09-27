@@ -8,7 +8,11 @@ let LlamaModel, llamaCppAvailable = false;
 
 try {
   const llamaCpp = await import('node-llama-cpp');
-  LlamaModel = llamaCpp.LlamaModel;
+  // Handle possible default export
+  LlamaModel = llamaCpp.LlamaModel || llamaCpp.default?.LlamaModel || llamaCpp.default;
+  if (!LlamaModel) {
+    throw new Error('LlamaModel not found in node-llama-cpp package');
+  }
   llamaCppAvailable = true;
   console.log('✅ node-llama-cpp loaded successfully');
 } catch (error) {
