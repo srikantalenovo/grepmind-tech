@@ -16,7 +16,7 @@ export const AI_CONFIG = {
       description: 'Lightweight conversational model for chat widget',
       modelPath: './models/chat/',  // Local file path
       ollamaModel: 'llama-3.2-1b-q4_k_m',     // Ollama model name
-      isLocal: false,  // Will auto-detect and fallback to local if Ollama unavailable
+      isLocal: true,  // Will auto-detect and fallback to local if Ollama unavailable
       enabled: true,
       fallbackModels: ['llama-3.2-1b-q4_k_m', 'llama3.2:3b', 'qwen2:1.5b'],  // Fallback options
       useLocalFallback: true  // Enable local file fallback
@@ -29,7 +29,7 @@ export const AI_CONFIG = {
       description: 'Main LLM for prompt processing and text generation',
       modelPath: './models/llm/',   // Local file path
       ollamaModel: 'llama-3.2-1b-q4_k_m',  // Ollama model name
-      isLocal: false,  // Will auto-detect and fallback to local if Ollama unavailable
+      isLocal: true,  // Will auto-detect and fallback to local if Ollama unavailable
       enabled: true,
       fallbackModels: ['llama-3.2-1b-q4_k_m', 'phi3:mini', 'qwen2:7b', 'mistral:7b'],  // Fallback options
       useLocalFallback: true  // Enable local file fallback
