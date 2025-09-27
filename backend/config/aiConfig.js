@@ -6,7 +6,7 @@ export const AI_CONFIG = {
     retries: 3
   },
 
-  // Model configurations for Ollama models
+  // Model configurations - supports both Ollama and local files
   models: {
     chat: {
       name: 'phi3:mini',  // Lightweight conversational model
@@ -14,11 +14,12 @@ export const AI_CONFIG = {
       maxTokens: 150,
       temperature: 0.7,
       description: 'Lightweight conversational model for chat widget',
-      modelPath: './models/chat/',  // Local backup path
+      modelPath: './models/chat/',  // Local file path
       ollamaModel: 'phi3:mini',     // Ollama model name
-      isLocal: false,  // Using Ollama instead of local files
+      isLocal: false,  // Will auto-detect and fallback to local if Ollama unavailable
       enabled: true,
-      fallbackModels: ['llama3.2:3b', 'qwen2:1.5b']  // Fallback options
+      fallbackModels: ['llama3.2:3b', 'qwen2:1.5b'],  // Fallback options
+      useLocalFallback: true  // Enable local file fallback
     },
     llm: {
       name: 'llama3.2:3b',  // Main LLM model
@@ -26,11 +27,12 @@ export const AI_CONFIG = {
       maxTokens: 2048,
       temperature: 0.6,
       description: 'Main LLM for prompt processing and text generation',
-      modelPath: './models/llm/',   // Local backup path
+      modelPath: './models/llm/',   // Local file path
       ollamaModel: 'llama3.2:3b',  // Ollama model name
-      isLocal: false,  // Using Ollama instead of local files
+      isLocal: false,  // Will auto-detect and fallback to local if Ollama unavailable
       enabled: true,
-      fallbackModels: ['phi3:mini', 'qwen2:7b', 'mistral:7b']  // Fallback options
+      fallbackModels: ['phi3:mini', 'qwen2:7b', 'mistral:7b'],  // Fallback options
+      useLocalFallback: true  // Enable local file fallback
     }
   },
   
