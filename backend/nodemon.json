@@ -1,0 +1,13 @@
+{
+  "watch": [".", "!models/**", "!node_modules/**"],
+  "ext": "js,json",
+  "ignore": [
+    "models/**/*.gguf",
+    "node_modules/**/*",
+    "*.log"
+  ],
+  "delay": 2000,
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
