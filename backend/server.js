@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import aiRoutes from './routes/ai.js';
+import { aiService } from './services/aiService.js';
 
 dotenv.config();
 const app = express();
@@ -66,9 +68,48 @@ app.use((err, req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/ai', aiRoutes);
+
+// Initialize AI services on server start
+const initializeServer = async () => {
+  try {
+    console.log('🚀 Starting GrepMind Tech Backend Server...');
+    
+    // Initialize AI services in background
+    console.log('🤖 Initializing AI services...');
+    aiService.initialize()
+      .then(result => {
+        if (result.success) {
+          console.log('✅ AI services initialized successfully');
+        } else {
+          console.warn('⚠️  AI services initialization had issues:', result.error);
+        }
+      })
+      .catch(error => {
+        console.error('❌ AI services initialization failed:', error);
+      });
+    
+  } catch (error) {
+    console.error('❌ Server initialization error:', error);
+  }
+};
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, async () => {
+  console.log(`🌐 Server is running on port ${PORT}`);
+  await initializeServer();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('📋 SIGTERM received, shutting down gracefully...');
+  await aiService.shutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('📋 SIGINT received, shutting down gracefully...');
+  await aiService.shutdown();
+  process.exit(0);
 });

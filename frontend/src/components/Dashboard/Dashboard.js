@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiPlus, FiMic, FiArrowUp, FiChevronDown } from 'react-icons/fi';
 import upSquareIcon from '../../assets/upsqure.png';
+import aiApiService from '../../services/aiApi.js';
 
 const Dashboard = () => {
   // Main dashboard states
@@ -14,12 +15,45 @@ const Dashboard = () => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatSessionId] = useState(() => aiApiService.generateSessionId());
+  
+  // AI service states
+  const [isAIReady, setIsAIReady] = useState(false);
+  const [aiError, setAiError] = useState(null);
   
   const mainPromptRef = useRef(null);
-  const mainResponsesEndRef = useRef(null); // Added ref for main responses scroll
+  const mainResponsesEndRef = useRef(null);
   const chatInputRef = useRef(null);
   const chatMessagesEndRef = useRef(null);
-  const contentRef = useRef(null); // Added ref for scroll detection
+  const contentRef = useRef(null);
+
+  // Initialize AI services on component mount
+  useEffect(() => {
+    const initializeAI = async () => {
+      try {
+        console.log('🤖 Checking AI services status...');
+        const ready = await aiApiService.isReady();
+        
+        if (ready) {
+          setIsAIReady(true);
+          setAiError(null);
+          console.log('✅ AI services are ready');
+        } else {
+          console.log('⏳ Waiting for AI services to initialize...');
+          await aiApiService.waitForReady(30000);
+          setIsAIReady(true);
+          setAiError(null);
+          console.log('✅ AI services initialized successfully');
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize AI services:', error);
+        setAiError(error.message);
+        setIsAIReady(false);
+      }
+    };
+
+    initializeAI();
+  }, []);
 
   // Scroll to bottom when main responses change
   const scrollMainToBottom = () => {
@@ -65,11 +99,17 @@ const Dashboard = () => {
     setIsChatOpen(!isChatOpen);
   };
 
-  // Handle main dashboard prompt submission with AI integration
+  // Handle main dashboard prompt submission with real AI integration
   const handleMainPromptSubmit = async (e) => {
     e.preventDefault();
     
     if (!mainPrompt.trim()) return;
+
+    // Check if AI services are ready
+    if (!isAIReady) {
+      console.warn('AI services not ready yet');
+      return;
+    }
 
     const promptText = mainPrompt;
     setMainPrompt('');
@@ -81,64 +121,118 @@ const Dashboard = () => {
     }
 
     try {
-      // Make API call to AI service
-      const response = await fetch('https://api.example.com/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: promptText }),
-      });
-
-      if (!response.ok) {
-        throw new Error('API request failed');
-      }
-
-      const data = await response.json();
-      
       // Create response object for streaming
       const responseObj = {
         id: Date.now(),
         prompt: promptText,
-        response: '', // Will be filled during streaming
-        fullResponse: data.response || generateResponse(promptText), // Fallback to mock response
+        response: '',
         timestamp: new Date().toLocaleString(),
-        isStreaming: true
+        isStreaming: true,
+        isComplete: false,
+        requestId: null
       };
       
-      // Add response to state and start streaming
-      setMainResponses(prev => [...prev, responseObj]); // Changed to append at end for newest at bottom
+      // Add response to state immediately
+      setMainResponses(prev => [...prev, responseObj]);
       setIsMainLoading(false);
       
-      // Start streaming the response word by word
-      await streamResponse(responseObj.id, responseObj.fullResponse);
+      // Start streaming response from LLM
+      try {
+        for await (const chunk of aiApiService.streamLLMResponse(promptText)) {
+          // Update the response object with the chunk data
+          setMainResponses(prev => prev.map(item => 
+            item.id === responseObj.id 
+              ? { 
+                  ...item, 
+                  response: chunk.type === 'content' ? chunk.content : item.response,
+                  isStreaming: !chunk.isComplete,
+                  isComplete: chunk.isComplete || chunk.type === 'complete',
+                  requestId: chunk.requestId || item.requestId,
+                  error: chunk.type === 'error' ? chunk.content : item.error
+                }
+              : item
+          ));
+
+          // Handle different chunk types
+          if (chunk.type === 'error') {
+            console.error('Streaming error:', chunk.content);
+            break;
+          }
+          
+          if (chunk.type === 'complete' || chunk.isComplete) {
+            break;
+          }
+        }
+      } catch (streamError) {
+        console.error('Streaming failed:', streamError);
+        
+        // Fallback to non-streaming API call
+        try {
+          const response = await aiApiService.generateResponse(promptText);
+          
+          if (response.success) {
+            setMainResponses(prev => prev.map(item => 
+              item.id === responseObj.id 
+                ? { 
+                    ...item, 
+                    response: response.data.response,
+                    isStreaming: false,
+                    isComplete: true,
+                    requestId: response.data.requestId
+                  }
+                : item
+            ));
+          } else {
+            throw new Error(response.error);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback API call also failed:', fallbackError);
+          
+          // Use mock response as final fallback
+          setMainResponses(prev => prev.map(item => 
+            item.id === responseObj.id 
+              ? { 
+                  ...item, 
+                  response: generateFallbackResponse(promptText),
+                  isStreaming: false,
+                  isComplete: true,
+                  error: 'AI service temporarily unavailable, showing fallback response'
+                }
+              : item
+          ));
+        }
+      }
       
     } catch (error) {
-      console.error('API call failed:', error);
-      
-      // Fallback to mock response with streaming
-      const responseObj = {
-        id: Date.now(),
-        prompt: promptText,
-        response: '',
-        fullResponse: generateResponse(promptText),
-        timestamp: new Date().toLocaleString(),
-        isStreaming: true
-      };
-      
-      setMainResponses(prev => [...prev, responseObj]); // Changed to append at end for newest at bottom
+      console.error('Main prompt submission failed:', error);
       setIsMainLoading(false);
       
-      // Stream the fallback response
-      await streamResponse(responseObj.id, responseObj.fullResponse);
+      // Create error response
+      const errorResponse = {
+        id: Date.now(),
+        prompt: promptText,
+        response: generateFallbackResponse(promptText),
+        timestamp: new Date().toLocaleString(),
+        isStreaming: false,
+        isComplete: true,
+        error: `Error: ${error.message}`
+      };
+      
+      setMainResponses(prev => [...prev, errorResponse]);
     }
   };
 
-  // Handle chat widget submission
+  // Handle chat widget submission with real AI integration
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     
     if (!chatInput.trim() || isChatLoading) return;
+
+    // Check if AI services are ready
+    if (!isAIReady) {
+      console.warn('AI services not ready yet');
+      return;
+    }
 
     const userMessage = {
       id: Date.now(),
@@ -152,67 +246,134 @@ const Dashboard = () => {
     setIsChatLoading(true);
 
     try {
-      // Simulate API call for chat assistant
-      setTimeout(() => {
-        const aiMessage = {
-          id: Date.now() + 1,
-          text: generateChatResponse(userMessage.text),
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString()
-        };
+      // Create placeholder AI message for streaming
+      const aiMessageId = Date.now() + 1;
+      const aiMessage = {
+        id: aiMessageId,
+        text: '',
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+        isStreaming: true,
+        isComplete: false
+      };
+      
+      setChatMessages(prev => [...prev, aiMessage]);
+
+      // Stream chat response
+      try {
+        for await (const chunk of aiApiService.streamChatMessage(chatSessionId, userMessage.text)) {
+          setChatMessages(prev => prev.map(msg => 
+            msg.id === aiMessageId 
+              ? { 
+                  ...msg, 
+                  text: chunk.type === 'content' ? chunk.content : msg.text,
+                  isStreaming: !chunk.isComplete,
+                  isComplete: chunk.isComplete || chunk.type === 'complete',
+                  error: chunk.type === 'error' ? chunk.content : msg.error
+                }
+              : msg
+          ));
+
+          if (chunk.type === 'error') {
+            console.error('Chat streaming error:', chunk.content);
+            break;
+          }
+          
+          if (chunk.type === 'complete' || chunk.isComplete) {
+            break;
+          }
+        }
+      } catch (streamError) {
+        console.error('Chat streaming failed:', streamError);
         
-        setChatMessages(prev => [...prev, aiMessage]);
-        setIsChatLoading(false);
-      }, 1000);
+        // Fallback to non-streaming chat API
+        try {
+          const response = await aiApiService.sendChatMessage(chatSessionId, userMessage.text);
+          
+          if (response.success) {
+            setChatMessages(prev => prev.map(msg => 
+              msg.id === aiMessageId 
+                ? { 
+                    ...msg, 
+                    text: response.data.response,
+                    isStreaming: false,
+                    isComplete: true
+                  }
+                : msg
+            ));
+          } else {
+            throw new Error(response.error);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback chat API call also failed:', fallbackError);
+          
+          // Use fallback response
+          setChatMessages(prev => prev.map(msg => 
+            msg.id === aiMessageId 
+              ? { 
+                  ...msg, 
+                  text: generateChatFallbackResponse(userMessage.text),
+                  isStreaming: false,
+                  isComplete: true,
+                  error: 'Chat service temporarily unavailable'
+                }
+              : msg
+          ));
+        }
+      }
       
     } catch (error) {
       console.error('Chat error:', error);
+      
+      // Create error message
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: generateChatFallbackResponse(userMessage.text),
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+        error: `Error: ${error.message}`
+      };
+      
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsChatLoading(false);
     }
   };
 
-  // Generate chat response
-  const generateChatResponse = (input) => {
+  // Generate chat fallback response
+  const generateChatFallbackResponse = (input) => {
     const responses = [
-      "I'm here to help! What specific task would you like assistance with?",
-      "Great question! I can help you with data analysis, content creation, or technical support.",
-      "I understand. Let me provide some quick guidance on that topic.",
-      "Thanks for reaching out! Here's what I recommend for your situation.",
-      "I can definitely assist with that. Let me walk you through the process.",
+      "I'm here to help! The AI chat service is temporarily unavailable, but I can still provide general guidance.",
+      "Thanks for your message! While our AI services are being initialized, I can offer some basic assistance.",
+      "I appreciate you reaching out! Our conversational AI is currently loading, but I'm here to help however I can.",
+      "Hello! The chat AI is temporarily unavailable, but I'd be happy to provide general information.",
+      "Thank you for your patience! Our AI services are starting up, but I can still try to assist you.",
     ];
+    
+    // Simple keyword-based responses for common queries
+    const lowerInput = input.toLowerCase();
+    
+    if (lowerInput.includes('hello') || lowerInput.includes('hi')) {
+      return "Hello! I'm your AI assistant. While our services are initializing, I'm here to help with basic guidance.";
+    }
+    
+    if (lowerInput.includes('help')) {
+      return "I'm here to help! Our AI services are currently loading, but I can provide general assistance and guidance.";
+    }
+    
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
-  // Stream response word by word
-  const streamResponse = async (responseId, fullText) => {
-    const words = fullText.split(' ');
-    let currentText = '';
-    
-    for (let i = 0; i < words.length; i++) {
-      currentText += (i > 0 ? ' ' : '') + words[i];
-      
-      setMainResponses(prev => prev.map(item => 
-        item.id === responseId 
-          ? { ...item, response: currentText, isStreaming: i < words.length - 1 }
-          : item
-      ));
-      
-      // Wait 50ms before next word
-      if (i < words.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-    }
-  };
-
-  // Generate AI response
-  const generateResponse = (prompt) => {
+  // Generate LLM fallback response
+  const generateFallbackResponse = (prompt) => {
     const responses = [
-      "Based on your query, here's what I found: This appears to be related to data analysis and processing. I recommend reviewing the latest metrics and trends.",
-      "Great question! I've analyzed your request and here's my comprehensive response: The data suggests several key patterns that could be valuable for your decision-making process.",
-      "Thank you for your inquiry. After processing your prompt, I can provide these insights: The current trends indicate significant opportunities for optimization.",
-      "I understand your request. Here's my detailed analysis: The information you've provided suggests multiple approaches we could explore further.",
-      "Excellent prompt! Based on my analysis: The data points to several interesting conclusions that could impact your strategic planning.",
+      `I've received your prompt about "${prompt.slice(0, 50)}${prompt.length > 50 ? '...' : ''}". Our AI services are currently initializing. In production mode, this would be processed by our LLM model to provide detailed, contextual responses. Please try again in a moment when the services are fully loaded.`,
+      
+      `Thank you for your query regarding "${prompt.slice(0, 50)}${prompt.length > 50 ? '...' : ''}". Our AI language model is currently loading. Once ready, it will provide comprehensive analysis and insights for your request.`,
+      
+      `Your prompt about "${prompt.slice(0, 50)}${prompt.length > 50 ? '...' : ''}" has been received. While our AI services are starting up, please note that the full AI capabilities will be available shortly for detailed processing.`
     ];
+    
     return responses[Math.floor(Math.random() * responses.length)];
   };
 
@@ -236,6 +397,28 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
+      
+      {/* AI Service Status Indicator */}
+      <div className={`ai-status-indicator ${isAIReady ? 'ready' : 'loading'}`}>
+        <div className="status-content">
+          {isAIReady ? (
+            <>
+              <span className="status-dot ready"></span>
+              <span className="status-text">AI Services Ready</span>
+            </>
+          ) : aiError ? (
+            <>
+              <span className="status-dot error"></span>
+              <span className="status-text">AI Services Error: {aiError}</span>
+            </>
+          ) : (
+            <>
+              <span className="status-dot loading"></span>
+              <span className="status-text">Initializing AI Services...</span>
+            </>
+          )}
+        </div>
+      </div>
       
       {/* Main Dashboard Content - Full Width with Prompt Interface */}
       <div ref={contentRef} className="main-dashboard">
